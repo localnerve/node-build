@@ -1,0 +1,36 @@
+{
+  "name": "node-build",
+  "version": "0.1.0",
+  "description": "A no-dependency, Node 24+ streaming build runner that replaces gulp while staying compatible with existing gulp plugins and Vinyl file objects.",
+  "type": "module",
+  "license": "MIT",
+  "author": "",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js",
+    "./file": "./src/file.js",
+    "./task": "./src/task.js",
+    "./stream": "./src/stream.js",
+    "./glob": "./src/glob.js"
+  },
+  "scripts": {
+    "test": "node --test",
+    "build:example": "node ./bin/node-build.mjs"
+  },
+  "keywords": [
+    "build",
+    "stream",
+    "gulp-alternative",
+    "task-runner",
+    "no-dependency",
+    "vinyl"
+  ],
+  "files": [
+    "src",
+    "bin",
+    "README.md"
+  ]
+}
