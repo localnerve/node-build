@@ -16,7 +16,7 @@ import { globFiles } from './glob.js';
 // Characters that mark a pattern as a glob (anything else is a literal path).
 const GLOB_CHARS = /[?*[\]{}()!+@|\\]/;
 
-/** True when the string contains any glob metacharacter. */
+/** True when the string contains any glob metacharacter. @param {string} pattern @returns {boolean} */
 function hasGlobChars(pattern) {
   return GLOB_CHARS.test(pattern);
 }
@@ -68,8 +68,9 @@ export async function clean(patterns, opts = {}) {
       // recursive: true handles both files and directories; force guards races.
       await fs.promises.rm(target, { recursive: true, force: true });
       removed.push(target);
-    } catch (err) {
-      throw new Error(`node-build: clean() failed to remove ${target}: ${err.message}`, { cause: err });
+    } catch (cause) {
+      const err = /** @type {Error} */ (cause);
+      throw new Error(`node-build: clean() failed to remove ${target}: ${err.message}`, { cause });
     }
   }
   return removed;

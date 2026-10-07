@@ -12,6 +12,7 @@ import { isReadable as streamIsReadable } from 'node:stream';
 import { finished as streamFinished } from 'node:stream/promises';
 
 const tasks = new Map();
+/** @type {string|null} */
 let defaultTaskName = null;
 
 /**
@@ -89,7 +90,6 @@ function isStream(value) {
   return typeof value.pipe === 'function' && typeof value.on === 'function';
 }
 
-/** Await a task's result, handling stream-returning tasks. */
 /**
  * Invoke a task function and, if it returns a stream, wait for that stream to
  * finish. Returns the task's (stream or non-stream) result.
@@ -119,13 +119,13 @@ async function runTask(fn) {
 async function finishStream(stream) {
   if (isReadableSide(stream)) {
     if (isWritableSide(stream)) {
-      await streamFinished(stream, { readable: false });
+      await streamFinished(/** @type {any} */ (stream), { readable: false });
     } else {
       // eslint-disable-next-line no-unused-vars
-      for await (const _chunk of stream) { /* drain to 'end' */ }
+      for await (const _chunk of /** @type {any} */ (stream)) { /* drain to 'end' */ }
     }
   } else {
-    await streamFinished(stream);
+    await streamFinished(/** @type {any} */ (stream));
   }
 }
 
@@ -156,14 +156,56 @@ export async function series(...args) {
     } else if (typeof item === 'function') {
       results.push(await runTask(item));
     } else if (isStream(item)) {
-      await finishStream(item);
-    } else if (item && typeof item.then === 'function') {
+      await finishStream(
+        /** @type {import('node:stream').Stream} */ (item),
+      );
+    } else if (item && typeof /** @type {any} */ (item).then === 'function') {
       results.push(await item);
     } else if (item != null) {
       throw new TypeError(`Invalid task argument: ${typeof item}`);
     }
   }
   return results;
+}
+
+/**
+ * A zero-argument thunk that runs one task item to completion.
+ *
+ * @callback ParallelThunk
+ * @returns {Promise<unknown>}
+ */
+
+/**
+ * Build a thunk for one recognized task item; null items yield null (they are
+ * skipped by parallel()).
+ *
+ * @param {TaskItem} item A single flattened task argument.
+ * @returns {ParallelThunk|null} The thunk, or null for ignorable items.
+ * @throws {TypeError} If the item is not a recognized task type.
+ */
+function toThunk(item) {
+  if (typeof item === 'string') return () => runTask(getTask(item));
+  if (typeof item === 'function') return () => runTask(item);
+  if (isStream(item)) {
+    const stream = /** @type {import('node:stream').Stream} */ (item);
+    return async () => finishStream(stream);
+  }
+  if (item && typeof /** @type {any} */ (item).then === 'function') {
+    // Raw thenable: awaited as-is, matching series() behavior exactly.
+    return /** @type {ParallelThunk} */ (() => item);
+  }
+  if (item == null) return null;
+  throw new TypeError(`Invalid task argument: ${typeof item}`);
+}
+
+/**
+ * True when the value is a non-null thunk (used to skip ignored items).
+ *
+ * @param {ParallelThunk|null} t The candidate thunk.
+ * @returns {t is ParallelThunk} Whether `t` should be run.
+ */
+function isThunk(t) {
+  return t != null;
 }
 
 /**
@@ -176,21 +218,21 @@ export async function series(...args) {
  * @throws {TypeError} If an item is not a recognized task type.
  */
 export async function parallel(...args) {
+  /** @type {TaskItem[]} */
   const list = args.flat(Infinity);
-  const thunks = list.map((item) => {
-    if (typeof item === 'string') return () => runTask(getTask(item));
-    if (typeof item === 'function') return () => runTask(item);
-    if (isStream(item)) return async () => finishStream(item);
-    if (item && typeof item.then === 'function') return () => item;
-    if (item == null) return null;
-    throw new TypeError(`Invalid task argument: ${typeof item}`);
-  });
+  const thunks = list.map(toThunk);
 
-  const settled = await Promise.allSettled(thunks.filter(Boolean).map((t) => t()));
+  const settled = await Promise.allSettled(thunks.filter(isThunk).map((t) => t()));
   for (const s of settled) {
-    if (s.status === 'rejected') throw s.reason;
+    if (s.status === 'rejected') throw /** @type {any} */ (s.reason);
   }
-  return settled.map((s) => s.value);
+
+  /** @type {unknown[]} */
+  const results = [];
+  for (const s of settled) {
+    if (s.status === 'fulfilled') results.push(s.value);
+  }
+  return results;
 }
 
 /**

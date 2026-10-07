@@ -5,20 +5,45 @@
   "type": "module",
   "license": "MIT",
   "main": "./src/index.js",
+  "types": "./types/index.d.ts",
   "exports": {
-    ".": "./src/index.js",
-    "./file": "./src/file.js",
-    "./task": "./src/task.js",
-    "./stream": "./src/stream.js",
-    "./glob": "./src/glob.js",
-    "./clean": "./src/clean.js",
-    "./args": "./src/args.js"
+    ".": {
+      "types": "./types/index.d.ts",
+      "default": "./src/index.js"
+    },
+    "./file": {
+      "types": "./types/file.d.ts",
+      "default": "./src/file.js"
+    },
+    "./task": {
+      "types": "./types/task.d.ts",
+      "default": "./src/task.js"
+    },
+    "./stream": {
+      "types": "./types/stream.d.ts",
+      "default": "./src/stream.js"
+    },
+    "./glob": {
+      "types": "./types/glob.d.ts",
+      "default": "./src/glob.js"
+    },
+    "./clean": {
+      "types": "./types/clean.d.ts",
+      "default": "./src/clean.js"
+    },
+    "./args": {
+      "types": "./types/args.d.ts",
+      "default": "./src/args.js"
+    }
   },
   "scripts": {
     "build:example": "node ./bin/node-build.mjs",
     "lint": "eslint .",
     "pretest": "node -e \"const fs=require('fs'); fs.rmSync('coverage', {recursive:true, force:true}); fs.mkdirSync('coverage')\"",
-    "test": "node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage/lcov.info"
+    "test": "node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage/lcov.info",
+    "typecheck": "node scripts/typecheck.mjs",
+    "build:types": "tsc -p tsconfig.json",
+    "prepublishOnly": "npm run lint && npm test && npm run build:types"
   },
   "keywords": [
     "build",
@@ -31,6 +56,7 @@
   "files": [
     "src",
     "bin",
+    "types",
     "docs",
     "examples",
     "README.md",
@@ -56,9 +82,11 @@
   ],
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/node": "^24.19.1",
     "eslint": "^10.11.0",
     "eslint-plugin-n": "^18.4.0",
-    "globals": "^17.12.0"
+    "globals": "^17.12.0",
+    "typescript": "^7.0.2"
   },
   "bugs": {
     "url": "https://github.com/localnerve/node-build/issues"
