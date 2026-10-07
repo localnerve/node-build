@@ -87,11 +87,13 @@ for someone who has never used Gulp or this project before. Start with
   [`runDefault`](./docs/tasks.md), [`getTask`](./docs/tasks.md),
   [`listTasks`](./docs/tasks.md), [`seriesDefault`](./docs/tasks.md)
 - **Streams:** [`src`](./docs/streams.md), [`dest`](./docs/streams.md),
-  [`through`](./docs/streams.md), [`pipeline`](./docs/streams.md),
+  [`through`](./docs/streams.md), [`clean`](./docs/streams.md),
+  [`pipeline`](./docs/streams.md),
   [`wrapFile`](./docs/gulp-plugins.md), [`unwrapFile`](./docs/gulp-plugins.md)
 - **Files:** [`File`](./docs/file.md), [`resolveFileClass`](./docs/gulp-plugins.md),
   [`resolveFileClassSync`](./docs/gulp-plugins.md)
 - **Globbing:** [`globFiles`](./docs/glob.md), [`deriveBase`](./docs/glob.md)
+- **CLI & args:** [`parseArgs`](./docs/cli.md)
 
 ## Test
 

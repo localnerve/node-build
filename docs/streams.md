@@ -38,6 +38,11 @@ Patterns accept everything described in [Globbing](./glob.md): `*`, `**`, `?`,
 braces `{a,b}`, and negation with a leading `!`. Pass an array for multiple
 patterns.
 
+> **Empty-match warning.** If a *positive* pattern matches no files, `src()`
+> prints a one-line warning to the console (e.g. `node-build: src() matched no
+> files for pattern(s): src/**/*.html`) so a typo'd path is visible instead of
+> silently producing an empty build. A negation-only pattern list does not warn.
+
 ### Why "base" matters
 
 Gulp plugins compute output paths from `file.relative` (the path *inside* the
@@ -62,6 +67,36 @@ src('src/**/*.{html,css}').pipe(dest('dist'));
 After writing, node-build updates `file.path` to the final on-disk location, so
 downstream transforms can see where a file landed.
 
+## `clean(patterns, opts?)` — delete files and directories
+
+`clean()` is node-build's dependency-free `gulp-clean`. It resolves your patterns
+and removes the matches from disk. Use it to wipe an output directory at the start
+of a build:
+
+```js
+import { clean } from 'node-build';
+
+await clean('dist');            // remove the whole dist/ folder (recursive)
+await clean(['dist/**', '!dist/keep.txt']);   // globs + negation, same syntax as src()
+```
+
+Two kinds of input are accepted and can be mixed:
+
+- **glob patterns** — match individual *files* (same syntax as `src()`, including
+  `!` negation);
+- **literal paths** — a plain directory or file name with no glob characters is
+  removed directly. This is the common `clean('dist')` case, since a bare
+  directory name matches no files on its own.
+
+Directories are removed recursively. Non-existent targets are ignored, so
+`clean()` is safe to call unconditionally (idempotent). It resolves to an array of
+the absolute paths actually removed (empty when nothing matched).
+
+```js
+import { task, clean } from 'node-build';
+task('clean', async () => { await clean('dist'); });   // run as a normal task
+```
+
 ## `through(fn)` — transform files in memory
 
 `through()` is how you write **your own** build step without any plugin and
@@ -74,6 +109,12 @@ for each File. What you do with the result decides what happens:
 | a **new** File     | The new file is pushed downstream instead.      |
 | `null`/`undefined` | The file is **dropped** from the pipeline.      |
 | an **array** of Files | Each one is pushed (one input → many outputs). |
+
+> **Output validation.** Every value you push (directly or in an array) must be a
+> File-like object — i.e. it has a string `path`. If your function returns anything
+> else, `through()` throws a clear error (`through() expected a File …`) instead of
+> failing later and more obscurely at `dest()`. Returning `null`/`undefined` to drop
+> a file is always allowed.
 
 Async functions are supported, so you can `await` real work per file:
 
