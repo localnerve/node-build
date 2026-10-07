@@ -14,12 +14,36 @@ import { Readable, Writable, Transform } from 'node:stream';
 import { globFiles, deriveBase } from './glob.js';
 import { resolveFileClassSync } from './vinyl.js';
 
-/** Build a File instance using the project's resolved file class. */
+/**
+ * Options for {@link src}.
+ *
+ * @typedef {Object} SrcOptions
+ * @property {string} [cwd] Directory patterns resolve against (default process.cwd()).
+ * @property {string} [base] Override the derived gulp-style base directory.
+ * @property {BufferEncoding} [encoding] If set, contents are read as strings of this encoding; otherwise Buffers.
+ * @property {string} [from] Path used to resolve the project's file class (default cwd).
+ */
+
+/**
+ * Build a File instance using the project's resolved file class.
+ *
+ * @param {string} fromPath A path inside the consuming project.
+ * @returns {import('./file.js').File} An empty File of the resolved class.
+ */
 function makeFile(fromPath) {
   const { Vinyl } = resolveFileClassSync(fromPath);
-  return new Vinyl();
+  // Vinyl is a class (constructible); cast since the typedef models it callably.
+  return /** @type {any} */ (new (/** @type {any} */ (Vinyl))());
 }
 
+/**
+ * Async generator yielding a File per matched glob result, reading contents
+ * from disk. Warns when positive patterns match nothing.
+ *
+ * @param {string[]} patterns Concrete (non-negated-aware) pattern list.
+ * @param {SrcOptions} opts Options as passed to src().
+ * @param {string} cwd Resolved base directory.
+ */
 async function* fileGenerator(patterns, opts, cwd) {
   const files = await globFiles(patterns, { cwd });
   // Surface a likely typo early: a positive pattern that matches nothing would
@@ -36,8 +60,9 @@ async function* fileGenerator(patterns, opts, cwd) {
       contents = opts.encoding
         ? await fs.promises.readFile(file, opts.encoding)
         : await fs.promises.readFile(file);
-    } catch (err) {
-      throw new Error(`node-build: failed to read ${file}: ${err.message}`, { cause: err });
+    } catch (cause) {
+      const err = /** @type {Error} */ (cause);
+      throw new Error(`node-build: failed to read ${file}: ${err.message}`, { cause });
     }
     const f = makeFile(opts.from ?? cwd);
     f.path = file;
@@ -54,11 +79,7 @@ async function* fileGenerator(patterns, opts, cwd) {
  * file is read exactly once.
  *
  * @param {string|string[]} patterns Glob pattern(s), negation via `!`.
- * @param {{ cwd?: string, base?: string, encoding?: BufferEncoding }} [opts]
- *   - cwd: directory patterns resolve against (default process.cwd()).
- *   - base: override the derived gulp-style base directory.
- *   - encoding: if set, file contents are read as strings of this encoding;
- *     otherwise contents are Buffers (matches gulp's default).
+ * @param {SrcOptions} [opts] See {@link SrcOptions}.
  * @returns {Readable} Object-mode readable of File objects.
  */
 export function src(patterns, opts = {}) {
@@ -89,23 +110,55 @@ export function dest(destDir, opts = {}) {
         await fs.promises.mkdir(path.dirname(target), { recursive: true });
         if (file.isStream()) {
           // Pipe streamed contents to disk.
-          await new Promise((resolve, reject) => {
-            const ws = fs.createWriteStream(target);
-            ws.on('error', reject);
-            ws.on('finish', resolve);
-            file.contents.pipe(ws);
-          });
+          const ws = fs.createWriteStream(target);
+          try {
+            await new Promise((resolve, reject) => {
+              ws.on('error', reject);
+              ws.on('finish', () => resolve(true));
+              file.contents.pipe(ws);
+            });
+          } finally {
+            ws.close();
+          }
         } else {
           await fs.promises.writeFile(target, file.contents ?? Buffer.alloc(0));
         }
         // Reflect the final location back on mutable File objects.
         if ('path' in file && typeof file.path === 'string') file.path = target;
         callback();
-      } catch (err) {
-        callback(err);
+      } catch (cause) {
+        callback(/** @type {Error} */ (cause));
       }
     },
   });
+}
+
+/**
+ * Validate that a through() transform emitted something downstream can consume:
+ * a File-like object (string `path`), or return it unchanged. Anything else is
+ * almost certainly a bug, so fail fast with an actionable message instead of
+ * surfacing later as an obscure error at dest().
+ *
+ * @param {any} value The pushed value.
+ * @param {string} context Label for the error message (e.g. 'through()').
+ * @returns {any} The validated value, unchanged.
+ * @throws {TypeError} When the value is not File-like.
+ */
+function assertFileLike(value, context) {
+  if (value != null && typeof value === 'object' && typeof value.path === 'string') return value;
+  throw new TypeError(
+    `${context} expected a File (an object with a string ".path"), an array of Files, ` +
+    `or null/undefined to drop the file. Got: ${describeValue(value)}.`,
+  );
+}
+
+/** Compact human-readable description of a value for error messages. @param {any} value @returns {string} */
+function describeValue(value) {
+  if (value == null) return String(value);
+  if (Array.isArray(value)) return `array(${value.length})`;
+  const t = typeof value;
+  if (t === 'object') return `${t} { ${Object.keys(value).slice(0, 5).join(', ')} }`;
+  return t;
 }
 
 /**
@@ -116,34 +169,12 @@ export function dest(destDir, opts = {}) {
  *   - mutate the incoming File in place and return nothing (it is re-pushed), or
  *   - return null/undefined to drop the file, or
  *   - return an array of Files to emit multiple outputs.
- * Async functions are supported.
+ * Async functions are supported. Pushed values must be File-like (string `path`)
+ * or through() throws a clear error.
  *
- * @param {(file: any) => any} fn Per-file transform function.
+ * @param {(file: import('./file.js').File) => any} fn Per-file transform function.
  * @returns {Transform} Object-mode transform.
  */
-/**
- * Validate that a through() transform emitted something downstream can consume:
- * a File-like object (string `path`), or return it unchanged. Anything else is
- * almost certainly a bug, so fail fast with an actionable message instead of
- * surfacing later as an obscure error at dest().
- */
-function assertFileLike(value, context) {
-  if (value != null && typeof value === 'object' && typeof value.path === 'string') return value;
-  throw new TypeError(
-    `${context} expected a File (an object with a string ".path"), an array of Files, ` +
-    `or null/undefined to drop the file. Got: ${describeValue(value)}.`,
-  );
-}
-
-/** Compact human-readable description of a value for error messages. */
-function describeValue(value) {
-  if (value == null) return String(value);
-  if (Array.isArray(value)) return `array(${value.length})`;
-  const t = typeof value;
-  if (t === 'object') return `${t} { ${Object.keys(value).slice(0, 5).join(', ')} }`;
-  return t;
-}
-
 export function through(fn) {
   return new Transform({
     objectMode: true,
@@ -157,8 +188,8 @@ export function through(fn) {
           this.push(assertFileLike(result, 'through()'));
         }
         callback();
-      } catch (err) {
-        callback(err);
+      } catch (cause) {
+        callback(/** @type {Error} */ (cause));
       }
     },
   });
@@ -203,6 +234,7 @@ export function unwrapFile() {
     construct(callback) {
       callback();
     },
+    /** @param {{ contents?: any }} fileObj A file-like object. */
     transform(fileObj, _enc, done) {
       this.push(fileObj.contents);
       done();

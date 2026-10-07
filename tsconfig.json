@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "rootDir": "src",
+    "outDir": "types",
+    "strict": true,
+    "target": "es2022",
+    "module": "nodenext",
+    "types": ["node"]
+  },
+  "files": [
+    "src/index.js",
+    "src/file.js",
+    "src/vinyl.js",
+    "src/glob.js",
+    "src/stream.js",
+    "src/task.js",
+    "src/clean.js",
+    "src/args.js"
+  ]
+}

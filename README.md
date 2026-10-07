@@ -95,6 +95,22 @@ for someone who has never used Gulp or this project before. Start with
 - **Globbing:** [`globFiles`](./docs/glob.md), [`deriveBase`](./docs/glob.md)
 - **CLI & args:** [`parseArgs`](./docs/cli.md)
 
+## Type support
+
+The public API is fully JSDoc-typed and ships generated TypeScript declarations
+under [`types/`](./types) (one `.d.ts` per entry point, wired into the
+`exports` map). Consumers get full IntelliSense in both JS and TS projects with
+no configuration; `import { task, src } from 'node-build'` resolves types
+automatically.
+
+```sh
+npm run typecheck   # strict checkJs over all of src/ (whole project)
+npm run typecheck -- src/file.js   # or just one module (and its imports)
+npm run build:types # regenerate types/*.d.ts from the JSDoc source of truth
+```
+
+`typescript` is a devDependency only — the runtime stays zero-dependency.
+
 ## Test
 
 ```sh

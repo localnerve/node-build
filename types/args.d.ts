@@ -8,7 +8,6 @@
  * Copyright (c) 2026 Alex Grant (@localnerve), LocalNerve LLC
  * Licensed under the MIT license.
  */
-
 /**
  * Parse command line arguments of the form `--name value` into an object.
  *
@@ -27,30 +26,5 @@
  * @param {string[]} argList Argument list (pass `process.argv` or a slice of it).
  * @returns {Record<string, string|boolean>} The parsed arguments as an object.
  */
-export function parseArgs(argList) {
-  /** @type {Record<string, string|boolean>} */
-  const args = {};
-  if (!Array.isArray(argList)) throw new TypeError('parseArgs() expects an array of strings');
-
-  /** @type {string|null} */
-  let current = null;
-  for (const raw of argList) {
-    if (typeof raw !== 'string') continue;
-    const token = raw.trim();
-    if (!token) continue;
-
-    const name = token.replace(/^-+/, '');
-    if (name === token) {
-      // No leading dashes: this is a value for the most recent name.
-      if (current != null) args[current] = token;
-      current = null;
-    } else {
-      // Leading dashes present: this is a flag name.
-      current = name;
-      args[name] = true;
-    }
-  }
-  return args;
-}
-
+export declare function parseArgs(argList: string[]): Record<string, string | boolean>;
 export default parseArgs;
