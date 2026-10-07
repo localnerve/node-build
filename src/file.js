@@ -1,20 +1,16 @@
+/**
+ * node-build — Vinyl-compatible file shim.
+ * 
+ * A minimal, dependency-free file object that is duck-type compatible with the
+ * subset of the Vinyl API that gulp plugins actually rely on. When a real `vinyl`
+ * package is present in the consuming project, node-build transparently uses
+ * that instead (see vinyl.js) for maximum plugin compatibility.
+ * 
+ * Copyright (c) 2026 Alex Grant (@localnerve), LocalNerve LLC
+ * Licensed under the MIT license.
+ */
 import path from 'node:path';
 
-/**
- * A minimal, dependency-free file object that is duck-type compatible with the
- * subset of the Vinyl API that gulp plugins actually rely on:
- *   - .path       (absolute)
- *   - .base       (absolute directory considered "the base")
- *   - .relative   (path relative to base)
- *   - .contents   (Buffer | string | stream | null)
- *   - .history    (array of previous paths)
- *   - .stat
- *   - .clone() / .isBuffer() / .isNull() / .isStream() / .isSymbolicLink()
- *
- * This is used as the default file type. When a real `vinyl` package is present
- * in the consuming project, node-build transparently uses that instead (see
- * vinyl.js) for maximum plugin compatibility.
- */
 export class File {
   constructor(opts = {}) {
     this._cwd = opts.cwd ?? process.cwd();

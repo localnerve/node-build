@@ -1,19 +1,17 @@
+/**
+ * node-build — dependency-free glob.
+ * 
+ * Prefers the built-in `node:fs` glob when available; falls back to
+ * `fs.readdir({ recursive: true })` + a small matcher otherwise. Supports
+ * arrays of patterns and negation via a leading `!`.
+ * 
+ * Copyright (c) 2026 Alex Grant (@localnerve), LocalNerve LLC
+ * Licensed under the MIT license.
+ */
 import fs from 'node:fs';
 import path from 'node:path';
 
 const hasFsGlob = typeof fs.glob === 'function';
-
-/**
- * Dependency-free glob used by src().
- *
- * - Prefers the built-in `node:fs` glob when available (Node 24 exposes it as a
- *   callback function; newer Node adds promise/async-iterator overloads which we
- *   also support when present).
- * - Falls back to `fs.readdir({ recursive: true })` + a small matcher so the
- *   runner keeps working on interpreters that lack `fs.glob`.
- *
- * Supports arrays of patterns and negation via a leading `!`.
- */
 
 const GLOB_CHARS = /[?*[\]{}()!+@|\\]/;
 
@@ -145,9 +143,12 @@ async function globFallback(positive, negative, cwd) {
   const out = new Set();
   for (const entry of entries) {
     if (!entry.isFile()) continue;
-    const abs = path.isAbsolute(entry.path)
+    // Node's recursive readdir reports either `entry.path` (absolute on some
+    // versions, relative on others) or just `entry.name` + `entry.parentPath`.
+    let abs = typeof entry.path === 'string' && entry.path.length
       ? entry.path
-      : path.join(cwd, entry.parentPath ?? '', entry.name);
+      : path.join(entry.parentPath ?? '', entry.name);
+    if (!path.isAbsolute(abs)) abs = path.resolve(cwd, abs);
     const full = abs.replace(/\\/g, '/');
     if (negRe.some((re) => re.test(full))) continue;
     if (posRe.some((re) => re.test(full))) out.add(path.relative(cwd, abs));

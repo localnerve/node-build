@@ -1,10 +1,16 @@
+/**
+ * node-build — test suite.
+ * 
+ * Copyright (c) 2026 Alex Grant (@localnerve), LocalNerve LLC
+ * Licensed under the MIT license.
+ */
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fsSync from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import { Transform } from 'node:stream';
+import { Transform, Readable } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
 import {
@@ -22,7 +28,10 @@ import {
   getTask,
   globFiles,
   deriveBase,
+  resolveFileClass,
+  resolveFileClassSync,
 } from '../src/index.js';
+import { clearFileClassCache } from '../src/vinyl.js';
 
 let tmp;
 
@@ -66,6 +75,47 @@ test('globFiles matches braces, recursion, and negation', async () => {
     res.map((p) => path.relative(tmp, p)),
     [path.join('src', 'a.txt'), path.join('src', 'css', 'b.css')],
   );
+});
+
+test('deriveBase handles absolute patterns and plain filenames', () => {
+  assert.equal(deriveBase('/abs/dir/*.txt', '/x'), path.join('/', 'abs', 'dir'));
+  assert.equal(deriveBase('plain.txt', '/x'), path.resolve('/x'));
+});
+
+test('globFiles falls back to the built-in matcher when fs.glob throws', async () => {
+  // The source accesses fs.glob via property lookup at call time, so patching
+  // the shared fs object is enough to force the fallback path.
+  const realGlob = fsSync.glob;
+  fsSync.glob = () => { throw new Error('boom'); };
+  try {
+    const res = await globFiles(['src/**/*.{txt,css}', '!**/css/**'], { cwd: tmp });
+    assert.deepEqual(
+      res.map((p) => path.relative(tmp, p)),
+      [path.join('src', 'a.txt')],
+    );
+    // Missing cwd in fallback mode resolves to [] instead of throwing.
+    const missing = await globFiles(['**/*.txt'], { cwd: path.join(tmp, 'no-such-dir') });
+    assert.deepEqual(missing, []);
+  } finally {
+    fsSync.glob = realGlob;
+  }
+});
+
+test('src() wraps read failures with context', async () => {
+  const realReadFile = fsSync.promises.readFile.bind(fsSync.promises);
+  fsSync.promises.readFile = () => Promise.reject(Object.assign(new Error('simulated EIO'), { code: 'EIO' }));
+  try {
+    await fsp.writeFile(path.join(tmp, 'secret.txt'), 'x');
+    const drain = async () => {
+      const seen = [];
+      for await (const file of src('secret.txt', { cwd: tmp })) seen.push(file);
+      return seen;
+    };
+    await assert.rejects(drain(), /failed to read/);
+  } finally {
+    fsSync.promises.readFile = realReadFile;
+    await fsp.rm(path.join(tmp, 'secret.txt'), { force: true });
+  }
 });
 
 test('File shim exposes gulp-compatible surface', () => {
@@ -191,4 +241,197 @@ test('getTask/listTasks reflect registrations', () => {
   assert.ok(listTasks().includes('listed'));
   assert.equal(typeof getTask('listed'), 'function');
   assert.throws(() => getTask('does-not-exist'), /Unknown task/);
+});
+
+test('File: stat, history, symlink, toJSON, clone options', () => {
+  const f = new File({ cwd: tmp });
+  assert.equal(f.path, null);
+  assert.equal(f.base, null);
+  assert.equal(f.relative, '');
+  assert.deepEqual(f.history, []);
+  assert.ok(f.isNull());
+  assert.ok(!f.isBuffer());
+  assert.ok(!f.isStream());
+
+  f.stat = { isSymbolicLink: () => true };
+  assert.ok(f.isSymbolicLink());
+  f.stat = null;
+  assert.ok(!f.isSymbolicLink());
+
+  const g = new File({ cwd: tmp, path: 'src/a.txt' });
+  assert.deepEqual(g.history, [path.join(tmp, 'src', 'a.txt')]);
+  g.path = 'other/b.txt';
+  assert.equal(g.history[0], path.join(tmp, 'other', 'b.txt'));
+
+  const sFile = new File({ cwd: tmp, path: 'x.txt', contents: Readable.from(['hi']) });
+  assert.ok(sFile.isStream());
+
+  g.contents = Buffer.from('abc');
+  const j = g.toJSON();
+  assert.equal(j.contents, 'abc');
+  assert.equal(j.relative, 'b.txt');
+
+  const cloned = g.clone({ path: 'cloned/c.txt', contents: null });
+  assert.equal(cloned.path, path.join(tmp, 'cloned', 'c.txt'));
+  assert.ok(cloned.isNull());
+  assert.deepEqual(cloned.history, [...g.history]);
+
+  // relative falls back to basename when base is not a prefix.
+  const h = new File({ cwd: tmp, path: path.join(tmp, 'deep', 'file.txt'), base: '/elsewhere' });
+  assert.equal(h.relative, 'file.txt');
+});
+
+test('task() validates its arguments', () => {
+  assert.throws(() => task('', async () => {}), TypeError);
+  assert.throws(() => task(42, async () => {}), TypeError);
+  assert.throws(() => task('bad-name', null), /must be a function/);
+});
+
+test('series: nested arrays, functions, promises, streams and invalid args', async () => {
+  const order = [];
+  task('s-a', async () => { order.push('a'); return 'A'; });
+  const fn = async () => { order.push('fn'); return 'FN'; };
+
+  const results = await series([['s-a'], fn, Promise.resolve('P'), null]);
+  assert.deepEqual(order.filter((x) => x !== 'fn' && x !== 'a'), []);
+  assert.deepEqual(results, ['A', 'FN', 'P']);
+
+  // A bare readable passed directly is drained to completion.
+  const bare = Readable.from([1, 2, 3]);
+  await series(bare);
+
+  await assert.rejects(series(42), /Invalid task argument/);
+});
+
+test('parallel: named tasks, nested arrays, promises and invalid args', async () => {
+  task('p-a', async () => 'pa');
+  const results = await parallel([['p-a'], () => 'pf', Promise.resolve('pp'), null]);
+  assert.deepEqual(results, ['pa', 'pf', 'pp']);
+
+  // A bare readable passed directly is drained to completion.
+  const bare = Readable.from([1, 2, 3]);
+  await parallel(bare);
+
+  task('p-bad', async () => { throw new Error('parallel boom'); });
+  await assert.rejects(parallel(['p-bad']), /parallel boom/);
+  await assert.rejects(parallel(42), /Invalid task argument/);
+});
+
+test('run() accepts a name or function and rejects other types', async () => {
+  const results = await run(async () => 'ran');
+  assert.deepEqual(results, ['ran']);
+  task('run-named', async () => 'named');
+  assert.deepEqual(await run('run-named'), ['named']);
+  await assert.rejects(run(42), /expects a task name or function/);
+});
+
+test('a task returning a bare readable is drained to end', async () => {
+  let ended = false;
+  const r = Readable.from([1]);
+  r.on('end', () => { ended = true; });
+  await run(() => r);
+  assert.ok(ended);
+});
+
+test('src(): encoding option and opts.base/from', async () => {
+  const files = [];
+  for await (const f of src('src/*.txt', { cwd: tmp, encoding: 'utf8' })) files.push(f);
+  assert.equal(files[0].contents, 'alpha');
+
+  // Explicit base override.
+  const f2 = [];
+  for await (const f of src('src/**/*.css', { cwd: tmp, base: 'src/css' })) f2.push(f);
+  assert.equal(f2[0].base, path.resolve(tmp, 'src', 'css'));
+});
+
+test('dest(): streamed contents are piped; errors propagate', async () => {
+  const outDir = path.join(tmp, 'out-stream');
+  const streamFile = new File({ cwd: tmp, path: path.join(tmp, 'streamed.bin') });
+  streamFile.contents = Readable.from([Buffer.from('chunk1'), Buffer.from('chunk2')]);
+  await pipeline(Readable.from([streamFile]), dest(outDir));
+  assert.equal(await fsp.readFile(path.join(outDir, 'streamed.bin'), 'utf8'), 'chunk1chunk2');
+
+  // A file whose base does not prefix its path falls back to the basename.
+  const anon = new File({ cwd: tmp, path: path.join(tmp, 'zz-anon.txt'), base: '/unrelated' });
+  anon.contents = Buffer.from('anon');
+  await pipeline(Readable.from([anon]), dest(path.join(tmp, 'out-anon')));
+  assert.equal(await fsp.readFile(path.join(tmp, 'out-anon', 'zz-anon.txt'), 'utf8'), 'anon');
+
+  // Write failure (parent path is a file) rejects the pipeline.
+  const blocker = new File({ cwd: tmp, path: path.join(tmp, 'x', 'blocker'), base: path.join(tmp, 'x') });
+  blocker.contents = Buffer.from('i am a file');
+  await pipeline(Readable.from([blocker]), dest(path.join(tmp, 'out-bad')));
+  const colliding = new File({ cwd: tmp, path: path.join(tmp, 'x', 'blocker', 'inner.txt'), base: path.join(tmp, 'x') });
+  colliding.contents = Buffer.from('nope');
+  await assert.rejects(pipeline(Readable.from([colliding]), dest(path.join(tmp, 'out-bad'))));
+});
+
+test('through(): async fn, array output and error propagation', async () => {
+  const outDir2 = path.join(tmp, 'out-through2');
+  await pipeline(
+    src('src/*.txt', { cwd: tmp }),
+    through(async (file) => { file.contents = Buffer.from('async-mutated'); return [file]; }),
+    dest(outDir2),
+  );
+  assert.equal(await fsp.readFile(path.join(outDir2, 'a.txt'), 'utf8'), 'async-mutated');
+
+  // undefined result drops the file (same as null).
+  const outDir3 = path.join(tmp, 'out-through3');
+  await pipeline(
+    src('src/*.txt', { cwd: tmp }),
+    through(() => undefined),
+    dest(outDir3),
+  );
+  await assert.rejects(fsp.stat(path.join(outDir3, 'a.txt')));
+
+  task('through-err', () => src('src/*.txt', { cwd: tmp }).pipe(through(() => { throw new Error('transform blew up'); })));
+  await assert.rejects(run('through-err'), /transform blew up/);
+});
+
+test('resolveFileClass(Sync) falls back to the shim when vinyl is absent', async () => {
+  clearFileClassCache();
+  const asyncEntry = await resolveFileClass(tmp);
+  assert.equal(asyncEntry.source, 'shim');
+  assert.equal(typeof asyncEntry.Vinyl, 'function');
+
+  const syncEntry = resolveFileClassSync(tmp);
+  assert.equal(syncEntry.source, 'shim');
+  clearFileClassCache();
+});
+
+test('resolveFileClass(Sync) prefers a real vinyl package when present', async () => {
+  // Install a fake `vinyl` package next to the tmp project so createRequire
+  // (used by the resolver) can find it.
+  const pkgDir = path.join(tmp, 'node_modules', 'vinyl');
+  await fsp.mkdir(pkgDir, { recursive: true });
+  await fsp.writeFile(path.join(pkgDir, 'package.json'), JSON.stringify({ name: 'vinyl', version: '0.0.0-fake', main: 'index.js' }));
+  await fsp.writeFile(path.join(pkgDir, 'index.js'), 'module.exports = require("node:util").inherits ? globalThis.__FakeVinyl : null;\n');
+  globalThis.__FakeVinyl = class FakeVinyl { constructor() { this.path = null; } };
+  try {
+    clearFileClassCache();
+    const syncEntry = resolveFileClassSync(tmp);
+    assert.equal(syncEntry.source, 'vinyl');
+    assert.equal(syncEntry.Vinyl.name, 'FakeVinyl');
+
+    const asyncEntry = await resolveFileClass(tmp);
+    assert.equal(asyncEntry.source, 'vinyl');
+  } finally {
+    delete globalThis.__FakeVinyl;
+    await fsp.rm(path.join(tmp, 'node_modules'), { recursive: true, force: true });
+    clearFileClassCache();
+  }
+});
+
+test('a task returning a duplex stream is awaited on its writable side', async () => {
+  const { Duplex } = await import('node:stream');
+  let writeDone = false;
+  const dup = new Duplex({
+    read() { /* never ends readable side */ },
+    write(_chunk, _enc, cb) { writeDone = true; cb(); },
+  });
+  // Feed one chunk so the writable side gets a flush, then end.
+  dup.write('x');
+  dup.end();
+  await run(() => dup);
+  assert.ok(writeDone);
 });
