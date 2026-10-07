@@ -15,6 +15,7 @@ node /path/to/node-build/bin/node-build.mjs [taskName] [--config <file>]
 | ------------------- | -------------------------------------------------------------- |
 | `taskName`          | Run this one registered task (positional, optional).           |
 | `--config`, `-c`    | Explicit path to your build module.                            |
+| `--watch`           | Build, then re-run on asset changes (see [Watching](#watching)). |
 | `--help`, `-h`      | Print usage and exit.                                          |
 
 If you publish the package or add it to your `package.json` `bin`, you can just
@@ -106,6 +107,49 @@ task('manifest', async () => {
 Because the CLI passes unknown flags through untouched, this works with *any*
 build file and needs no special node-build API — it is just `process.argv`
 parsing you already know from Node.
+
+## Watching
+
+`--watch` runs your build once, then keeps watching for **asset** changes and
+re-runs the selected task (debounced) whenever a watched file is added,
+removed, or edited. This is the zero-dependency stand-in for `gulp-watch`.
+
+```sh
+node ./bin/node-build.mjs [taskName] --watch
+```
+
+To tell node-build *what* to watch, your build file's **default export**
+declares the globs:
+
+```js
+// build.mjs
+import { task, series } from 'node-build';
+
+task('css', () => /* src().pipe(dest()) … */);
+seriesDefault('css');
+
+// Globs watched when you pass --watch. Negation works, same syntax as src().
+export default { globs: ['src/css/**', '!src/css/vendor/**'] };
+```
+
+On each matching change the CLI prints `change detected — running…` and re-runs.
+Press `Ctrl+C` to stop; the watcher is closed cleanly.
+
+### What `--watch` watches (and what it doesn't)
+
+- It uses a single recursive `fs.watch` on your working directory, so any number
+  of globs costs one native watcher. Changes are matched against your globs and
+  debounced, so a burst of saves becomes one re-run.
+- It watches **files read by your tasks** (your assets). If you only need to
+  reload the *build file itself* when you edit it, use Node's built-in
+  `node --watch ./bin/node-build.mjs …` instead — that re-runs on **import-graph**
+  changes. node-build deliberately does not wrap `--watch`, because a build file
+  that merely *reads* assets inside a task never registers those files in the
+  module graph, so `node --watch` would not fire for them.
+
+You can also drive watching from code with the exported **[`watch()`](./streams.md#watch)**
+function — same engine, more control (custom task selection, `onRun`/`onError`
+callbacks, explicit `{ close() }`).
 
 ## Examples
 

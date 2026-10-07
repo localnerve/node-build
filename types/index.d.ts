@@ -15,6 +15,7 @@ import { File } from './file.js';
 import { resolveFileClass, resolveFileClassSync } from './vinyl.js';
 import { clean } from './clean.js';
 import { parseArgs } from './args.js';
+import { watch } from './watch.js';
 export { task, series, parallel, run, runDefault, getTask, listTasks, seriesDefault };
 export { src, dest, through, wrapFile, unwrapFile };
 export { pipeline } from 'node:stream/promises';
@@ -23,6 +24,7 @@ export { globFiles, deriveBase } from './glob.js';
 export { resolveFileClass, resolveFileClassSync };
 export { clean };
 export { parseArgs };
+export { watch };
 /** Default export mirrors gulp's common surface for quick migration. */
 import { pipeline as _pipeline } from 'node:stream/promises';
 declare const nodeBuild: {
@@ -34,6 +36,9 @@ declare const nodeBuild: {
     src: typeof src;
     dest: typeof dest;
     through: typeof through;
+    clean: typeof clean;
+    watch: typeof watch;
+    parseArgs: typeof parseArgs;
     pipeline: typeof _pipeline;
 };
 export default nodeBuild;

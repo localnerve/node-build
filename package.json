@@ -1,6 +1,6 @@
 {
   "name": "node-build",
-  "version": "0.1.1",
+  "version": "0.4.0",
   "description": "A no-dependency, Node 24+ streaming build runner that replaces gulp while staying compatible with existing gulp plugins and Vinyl file objects.",
   "type": "module",
   "license": "MIT",
@@ -34,6 +34,10 @@
     "./args": {
       "types": "./types/args.d.ts",
       "default": "./src/args.js"
+    },
+    "./watch": {
+      "types": "./types/watch.d.ts",
+      "default": "./src/watch.js"
     }
   },
   "scripts": {

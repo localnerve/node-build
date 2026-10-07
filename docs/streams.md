@@ -97,6 +97,40 @@ import { task, clean } from 'node-build';
 task('clean', async () => { await clean('dist'); });   // run as a normal task
 ```
 
+<a id="watch"></a>
+## `watch(globs, taskName?, opts?)` — re-run on file changes
+
+`watch()` is node-build's dependency-free `gulp-watch`. It runs your task once,
+then keeps watching the given globs and re-runs the task (debounced) whenever a
+matching file is added, removed, or edited.
+
+```js
+import { watch } from 'node-build';
+
+const handle = await watch('src/**', 'build', { debounceMs: 100 });
+// … later, when you're done (e.g. in a CLI signal handler):
+await handle.close();
+```
+
+- **`globs`** — pattern(s) that trigger the re-run; negation supported, same syntax as `src()`.
+- **`taskName`** — the registered task to run. Omit it to run your default (the
+  `seriesDefault()` task, else all tasks in parallel).
+- **`opts`**
+  - `cwd` — directory patterns resolve against and the root of the recursive watcher (default `process.cwd()`).
+  - `debounceMs` — quiet window before a re-run (default `100`). Bursts coalesce into one run.
+  - `onRun(reason)` — called before each run; `reason` is `'start'` for the initial build, `'event'` after.
+  - `onError(err)` — called when a re-run rejects; watching continues.
+
+The returned **handle** has `close()` (stop and release the watcher) and a live
+`running` flag. Runs are serialized: an event that arrives mid-run coalesces into
+a single follow-up run, so you never get overlapping builds. The initial run's
+failures go through `onError` like any other, so a broken build still arms the
+watcher.
+
+Under the hood it uses one recursive `fs.watch`, so any number of globs costs a
+single native watcher. See [the CLI's Watching section](./cli.md#watching) for how
+this maps to `node-build --watch` and how it differs from Node's own `--watch`.
+
 ## `through(fn)` — transform files in memory
 
 `through()` is how you write **your own** build step without any plugin and

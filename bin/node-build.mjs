@@ -16,12 +16,19 @@ import fs from 'node:fs';
 
 const BUILD_FILE_CANDIDATES = ['build.mjs', 'build.js', 'gulpfile.mjs', 'gulpfile.js'];
 
+/**
+ * Parse CLI arguments.
+ *
+ * @param {string[]} argv Process argument list (without node + script path).
+ * @returns {{ task: string|null, config: string|null, help: boolean, watch: boolean }} The parsed CLI options.
+ */
 function parseArgs(argv) {
-  const args = { task: null, config: null, help: false };
+  const args = { task: null, config: null, help: false, watch: false };
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--config' || a === '-c') args.config = argv[++i];
     else if (a === '--help' || a === '-h') args.help = true;
+    else if (a === '--watch') args.watch = true;
     else if (!a.startsWith('-')) args.task = a;
   }
   return args;
@@ -31,15 +38,20 @@ function printHelp() {
   console.log(`node-build — no-dependency streaming build runner
 
 Usage:
-  node-build [taskName] [--config <file>]
+  node-build [taskName] [--config <file>] [--watch]
 
 Options:
   --config, -c   Path to the build module (default: ./build.mjs or ./gulpfile.mjs)
+  --watch        Build, then re-run on asset changes (see the build file's default export for its globs)
   --help, -h     Show this help
 
 The build module exports nothing special; it calls task()/series()/parallel() from
 'node-build' at import time. The CLI runs the named task, or the default task if
-one was registered with seriesDefault(), otherwise all tasks in parallel.`);
+one was registered with seriesDefault(), otherwise all tasks in parallel.
+
+With --watch, the build file's default export may be an object { globs: [...] }
+or a function; the listed patterns are watched recursively and the selected
+task re-runs (debounced) when the matches change.`);
 }
 
 async function findBuildFile(explicit) {
@@ -59,6 +71,44 @@ async function findBuildFile(explicit) {
   );
 }
 
+/**
+ * Run in watch mode: arm the watcher from the build file's default export globs,
+ * then stay alive until SIGINT/SIGTERM.
+ *
+ * @param {{ task: string|null }} args Parsed CLI options.
+ * @param {any} mod The imported build module (its default export may carry globs).
+ */
+async function watchMode(args, mod) {
+  const { watch } = await import(new URL('../src/index.js', import.meta.url).href);
+
+  // Build files declare what to watch via their default export:
+  //   export default { globs: ['src/**'] }
+  // A function export may carry the same property (functions are objects):
+  //   defaultFn.globs = ['src/**']
+  const d = mod.default;
+  const hasGlobs = d != null && typeof d !== 'string' && Array.isArray(d.globs);
+  const globs = hasGlobs ? /** @type {string[]} */ (d.globs) : null;
+  if (!globs) {
+    throw new Error(
+      '--watch: the build file must export { globs: [pattern, ...] } as its default export so node-build knows what to watch.'
+    );
+  }
+
+  const handle = await watch(globs, args.task ?? undefined, {
+    onRun: (reason) => console.log(`\n${reason === 'start' ? 'build' : 'change detected'} — running…`),
+    onError: (err) => console.error(`\n✗ task failed (${err.message})`),
+  });
+  console.log(`watching ${globs.join(', ')} in ${process.cwd()} — press Ctrl+C to stop`);
+
+  await new Promise((resolve) => {
+    const stop = () => { resolve(); };
+    process.once('SIGINT', stop);
+    process.once('SIGTERM', stop);
+  });
+  await handle.close();
+  console.log('\nwatcher stopped');
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
@@ -71,14 +121,19 @@ async function main() {
   // Import the build module so its task registrations run.
   const mod = await import(pathToFileURL(buildFile).href);
 
+  if (args.watch) {
+    await watchMode(args, mod);
+    return;
+  }
+
   // The build file may export a function to invoke, or rely on registered tasks.
   if (typeof mod.default === 'function') {
     await mod.default(args.task);
   } else if (args.task) {
-    const { run } = await import(pathToFileURL(new URL('../src/index.js', import.meta.url)).href);
+    const { run } = await import(new URL('../src/index.js', import.meta.url).href);
     await run(args.task);
   } else {
-    const { runDefault } = await import(pathToFileURL(new URL('../src/index.js', import.meta.url)).href);
+    const { runDefault } = await import(new URL('../src/index.js', import.meta.url).href);
     await runDefault();
   }
 

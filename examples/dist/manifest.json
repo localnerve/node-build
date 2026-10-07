@@ -1,9 +1,11 @@
 {
-  "builtAt": "2026-10-07T14:18:42.006Z",
+  "builtAt": "2026-10-07T22:24:15.299Z",
   "tasks": [
     "html",
     "css"
   ],
-  "args": {},
-  "extraArgs": "html"
+  "args": {
+    "watch": true
+  },
+  "extraArgs": {}
 }

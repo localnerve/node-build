@@ -19,6 +19,7 @@
     "src/stream.js",
     "src/task.js",
     "src/clean.js",
-    "src/args.js"
+    "src/args.js",
+    "src/watch.js"
   ]
 }
