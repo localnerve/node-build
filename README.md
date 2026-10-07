@@ -40,109 +40,63 @@ backpressure, error propagation, and cleanup across the whole chain.
 - Node.js **>= 24** (developed against v24.21.0 LTS). On older interpreters the
   glob layer falls back to `fs.readdir({ recursive: true })` automatically.
 
-## Install / use
+## Quick start
 
-This is a library you import from your own project's build file, plus an optional
-CLI. There are no dependencies to install. To consume it as a package, either
-publish it or point at the local path:
+Point your project at the package, then run a build file with the bundled CLI:
 
 ```jsonc
 // your project's package.json
 { "dependencies": { "node-build": "file:/path/to/node-build" } }
 ```
 
-Or run the bundled CLI against a build file:
-
 ```sh
 node /path/to/node-build/bin/node-build.mjs [taskName] [--config ./build.mjs]
 ```
 
-## API
-
-### `src(patterns, opts?)` → `Readable`
-Globs files and yields one **File** object per match (object-mode readable).
-Backed by an async generator so backpressure is respected and each file is read
-once.
-
-- `patterns`: string or array of glob patterns. Negate with a leading `!`.
-  Braces (`{a,b}`) are supported.
-- `opts.cwd`: directory patterns resolve against (default `process.cwd()`).
-- `opts.base`: override the derived gulp-style base directory.
-- `opts.encoding`: if set, contents are read as strings of that encoding;
-  otherwise Buffers (matches Gulp's default).
-
-The **base** is derived from the static leading portion of the pattern
-(e.g. `src/**/*.css` → base `src/`), so `file.relative` and `file.base` match
-what existing plugins expect.
-
-### `dest(dir, opts?)` → `Writable`
-Writes each File to `path.join(dir, file.relative)`, creating parent directories.
-Supports Buffer/string contents and piped streamed contents.
-
-### `through(fn)` → `Transform`
-Build native steps without writing a Transform class. `fn(file)` may:
-- mutate `file` in place and return it (or nothing),
-- return a new File to push downstream,
-- return `null`/`undefined` to drop the file,
-- return an array of Files for multiple outputs.
-Async functions are supported.
-
-### `task(name, fn)` / `series(...)` / `parallel(...)`
-- `task(name, fn)` registers a task. `fn` may be sync, async, or **return a
-  stream** (a bare Readable, a Writable such as `dest()`, or a full piped chain) —
-  the task resolves when that stream completes.
-- `series(...tasks)` runs sequentially, stopping at the first error.
-- `parallel(...tasks)` runs concurrently, resolving when all succeed.
-Both accept task names, functions, and nested arrays, and return a Promise.
-
-### Gulp-plugin interop helpers
-- `wrapFile(filePath)` → object-mode transform that turns raw byte chunks into
-  `{ path, contents }` file-like objects.
-- `unwrapFile()` → the inverse; turns file-like objects back to raw contents.
-
-These are the "no Vinyl required" bridge (the same pattern used by
-`@localnerve/csp-hashes`) for feeding plain Node byte streams into object-mode
-Gulp plugins, and vice versa.
-
-### Other exports
-- `File` — the built-in Vinyl-compatible file class.
-- `pipeline` — re-export of `node:stream/promises`.`pipeline`.
-- `globFiles(patterns, opts)`, `deriveBase(pattern, cwd)` — lower-level glob utils.
-- `getTask(name)`, `listTasks()`, `run(task)`, `runDefault()`, `seriesDefault(name)`.
-
-## Using existing Gulp plugins
-
-Most Gulp plugins are object-mode transforms that only rely on the Vinyl surface
-(`file.path`, `file.base`, `file.relative`, `file.contents`, and the like). Those
-work **unchanged**:
+Or drive tasks from code — everything returns Promises:
 
 ```js
-import { task, src, dest } from 'node-build';
-import someGulpPlugin from 'some-gulp-plugin'; // any object-mode transform
-
-task('css', () => src('src/**/*.css').pipe(someGulpPlugin(opts)).pipe(dest('dist')));
+import { task, series } from 'node-build';
+task('hello', async () => console.log('hi'));
+await series('hello');
 ```
 
-**Vinyl auto-detection.** node-build ships a zero-dependency `File` shim by
-default. At run time it tries to resolve a real `vinyl` package from *your*
-project; if one exists, it uses that instead so plugins that do
-`instanceof Vinyl` or import vinyl internals also work — without node-build itself
-declaring a dependency on it. You can force the shim by simply not installing
-`vinyl`.
+A complete, runnable build lives in [`build.mjs`](./build.mjs) with inputs in
+[`examples/src/`](./examples/) — try `npm run build:example` from this repository.
 
-## Example
+## Documentation
 
-See `build.mjs` + `examples/`:
+Each feature of the public API has its own guide in [`docs/`](./docs/), written
+for someone who has never used Gulp or this project before. Start with
+[Getting started](./docs/getting-started.md).
 
-```sh
-node ./bin/node-build.mjs          # runs parallel('html','css') then 'manifest'
-node ./bin/node-build.mjs html     # run a single task
-```
+| Guide | What it covers |
+| ----- | -------------- |
+| [Getting started](./docs/getting-started.md) | The mental model, install, and a first build (CLI + code). |
+| [Tasks, series & parallel](./docs/tasks.md) | `task()`, `series()`, `parallel()`, `run()`, `getTask()`, `listTasks()`, `seriesDefault()`, `runDefault()` — defining and composing work. |
+| [Streams: src, dest & through](./docs/streams.md) | `src()`, `dest()`, `through()`, and `pipeline()` — moving files in, transforming them, and writing them out. |
+| [The File object](./docs/file.md) | The `File` class: `path`/`base`/`relative`/`contents`, type checks, `clone()`, `toJSON()`. |
+| [Globbing](./docs/glob.md) | Pattern syntax, `base` derivation, and the raw `globFiles()` / `deriveBase()` helpers. |
+| [Gulp plugin interop](./docs/gulp-plugins.md) | Reusing existing Gulp plugins, Vinyl auto-detection, and the `wrapFile()`/`unwrapFile()` byte-stream bridge. |
+| [The CLI](./docs/cli.md) | Invoking builds from the terminal, build-file discovery, and receiving your own `--flags` in a task. |
+
+### Export reference (quick map)
+
+- **Tasks:** [`task`](./docs/tasks.md), [`series`](./docs/tasks.md),
+  [`parallel`](./docs/tasks.md), [`run`](./docs/tasks.md),
+  [`runDefault`](./docs/tasks.md), [`getTask`](./docs/tasks.md),
+  [`listTasks`](./docs/tasks.md), [`seriesDefault`](./docs/tasks.md)
+- **Streams:** [`src`](./docs/streams.md), [`dest`](./docs/streams.md),
+  [`through`](./docs/streams.md), [`pipeline`](./docs/streams.md),
+  [`wrapFile`](./docs/gulp-plugins.md), [`unwrapFile`](./docs/gulp-plugins.md)
+- **Files:** [`File`](./docs/file.md), [`resolveFileClass`](./docs/gulp-plugins.md),
+  [`resolveFileClassSync`](./docs/gulp-plugins.md)
+- **Globbing:** [`globFiles`](./docs/glob.md), [`deriveBase`](./docs/glob.md)
 
 ## Test
 
 ```sh
-npm test        # node --test (11 tests, incl. a gulp-plugin-style interop test)
+npm test        # node --test with coverage (target: >= 95% line coverage)
 ```
 
 ## Design notes & limitations

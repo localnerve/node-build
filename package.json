@@ -29,6 +29,8 @@
   "files": [
     "src",
     "bin",
+    "docs",
+    "examples",
     "README.md",
     "LICENSE.md"
   ],

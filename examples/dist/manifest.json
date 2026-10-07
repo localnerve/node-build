@@ -1,11 +1,9 @@
 {
-  "builtAt": "2026-10-07T11:36:26.956Z",
+  "builtAt": "2026-10-07T14:18:42.006Z",
   "tasks": [
     "html",
     "css"
   ],
-  "args": {
-    "env": "staging",
-    "verbose": true
-  }
+  "args": {},
+  "extraArgs": "html"
 }

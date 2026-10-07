@@ -143,9 +143,12 @@ async function globFallback(positive, negative, cwd) {
   const out = new Set();
   for (const entry of entries) {
     if (!entry.isFile()) continue;
-    const abs = path.isAbsolute(entry.path)
+    // Node's recursive readdir reports either `entry.path` (absolute on some
+    // versions, relative on others) or just `entry.name` + `entry.parentPath`.
+    let abs = typeof entry.path === 'string' && entry.path.length
       ? entry.path
-      : path.join(cwd, entry.parentPath ?? '', entry.name);
+      : path.join(entry.parentPath ?? '', entry.name);
+    if (!path.isAbsolute(abs)) abs = path.resolve(cwd, abs);
     const full = abs.replace(/\\/g, '/');
     if (negRe.some((re) => re.test(full))) continue;
     if (posRe.some((re) => re.test(full))) out.add(path.relative(cwd, abs));

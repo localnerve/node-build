@@ -65,17 +65,20 @@ task('css', function buildCss() {
 });
 
 // A plain (non-stream) async task, e.g. generating a manifest.
+let extraArgs = {};
 task('manifest', async function makeManifest() {
   const fs = await import('node:fs');
   const entries = ['html', 'css'];
   await fs.promises.writeFile(
     path.join(cwd, 'examples/dist/manifest.json'),
-    JSON.stringify({ builtAt: new Date().toISOString(), tasks: entries, args }, null, 2),
+    JSON.stringify({ builtAt: new Date().toISOString(), tasks: entries, args, extraArgs }, null, 2),
   );
 });
 
-// Compose the above. Accepts optional CLI arguments (parsed from process.argv).
+// Compose the above. Optional extra args can be forwarded to the manifest step
+// when invoked programmatically: `await build({ watch: true })`.
 export function build (buildArgs = {}) {
+  extraArgs = buildArgs;
   return parallel('html', 'css').then(() => series('manifest'));
 }
 

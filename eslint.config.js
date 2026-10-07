@@ -39,4 +39,26 @@ export default [{
     quotes: [2, 'single'],
     'dot-notation': [2, {allowKeywords: true}]
   }
+}, {
+  name: 'mjs_entry_points',
+  files: ['**/*.mjs'],
+  plugins: {
+    n: nodePlugin
+  },
+  languageOptions: {
+    globals: {
+      ...globals.node
+    },
+    sourceType: 'module'
+  },
+  rules: {
+    ...js.configs.recommended.rules,
+    ...nodeRules,
+    indent: [2, 2, {
+      SwitchCase: 1,
+      MemberExpression: 1
+    }],
+    quotes: [2, 'single'],
+    'dot-notation': [2, {allowKeywords: true}]
+  }
 }];
