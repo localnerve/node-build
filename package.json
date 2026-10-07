@@ -1,6 +1,6 @@
 {
   "name": "node-build",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A no-dependency, Node 24+ streaming build runner that replaces gulp while staying compatible with existing gulp plugins and Vinyl file objects.",
   "type": "module",
   "license": "MIT",
@@ -13,8 +13,8 @@
     "./glob": "./src/glob.js"
   },
   "scripts": {
-    "lint": "eslint .",
     "build:example": "node ./bin/node-build.mjs",
+    "lint": "eslint .",
     "pretest": "node -e \"const fs=require('fs'); fs.rmSync('coverage', {recursive:true, force:true}); fs.mkdirSync('coverage')\"",
     "test": "node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage/lcov.info"
   },

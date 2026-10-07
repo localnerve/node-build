@@ -19,6 +19,8 @@ jobs:
         run: npm install -g npm@latest # ensure npm 11.5.1 or later
       - run: npm ci
       - name: Verify
-        run: npm test
+        run: |
+          npm run lint
+          npm test
       - name: Publish
         run: npm publish --access public
