@@ -13,6 +13,8 @@ import { task, series, parallel, run, runDefault, getTask, listTasks, seriesDefa
 import { src, dest, through, wrapFile, unwrapFile } from './stream.js';
 import { File } from './file.js';
 import { resolveFileClass, resolveFileClassSync } from './vinyl.js';
+import { clean } from './clean.js';
+import { parseArgs } from './args.js';
 
 export { task, series, parallel, run, runDefault, getTask, listTasks, seriesDefault };
 export { src, dest, through, wrapFile, unwrapFile };
@@ -20,6 +22,8 @@ export { pipeline } from 'node:stream/promises';
 export { File };
 export { globFiles, deriveBase } from './glob.js';
 export { resolveFileClass, resolveFileClassSync };
+export { clean };
+export { parseArgs };
 
 /** Default export mirrors gulp's common surface for quick migration. */
 import { pipeline as _pipeline } from 'node:stream/promises';

@@ -22,6 +22,12 @@ function makeFile(fromPath) {
 
 async function* fileGenerator(patterns, opts, cwd) {
   const files = await globFiles(patterns, { cwd });
+  // Surface a likely typo early: a positive pattern that matches nothing would
+  // otherwise produce a "successful" no-op stream that is hard to debug.
+  const hasPositivePattern = patterns.some((p) => !String(p).startsWith('!'));
+  if (!files.length && hasPositivePattern) {
+    console.warn(`node-build: src() matched no files for pattern(s): ${patterns.join(', ')}`);
+  }
   const base = opts.base ? path.resolve(cwd, opts.base) : deriveBase(patterns[0], cwd);
 
   for (const file of files) {
@@ -115,15 +121,41 @@ export function dest(destDir, opts = {}) {
  * @param {(file: any) => any} fn Per-file transform function.
  * @returns {Transform} Object-mode transform.
  */
+/**
+ * Validate that a through() transform emitted something downstream can consume:
+ * a File-like object (string `path`), or return it unchanged. Anything else is
+ * almost certainly a bug, so fail fast with an actionable message instead of
+ * surfacing later as an obscure error at dest().
+ */
+function assertFileLike(value, context) {
+  if (value != null && typeof value === 'object' && typeof value.path === 'string') return value;
+  throw new TypeError(
+    `${context} expected a File (an object with a string ".path"), an array of Files, ` +
+    `or null/undefined to drop the file. Got: ${describeValue(value)}.`,
+  );
+}
+
+/** Compact human-readable description of a value for error messages. */
+function describeValue(value) {
+  if (value == null) return String(value);
+  if (Array.isArray(value)) return `array(${value.length})`;
+  const t = typeof value;
+  if (t === 'object') return `${t} { ${Object.keys(value).slice(0, 5).join(', ')} }`;
+  return t;
+}
+
 export function through(fn) {
   return new Transform({
     objectMode: true,
     async transform(file, _enc, callback) {
       try {
         const result = await fn(file);
-        if (result == null) return callback();
-        if (Array.isArray(result)) for (const f of result) this.push(f);
-        else this.push(result);
+        if (result == null) return callback(); // drop the file
+        if (Array.isArray(result)) {
+          for (const f of result) this.push(assertFileLike(f, 'through()'));
+        } else {
+          this.push(assertFileLike(result, 'through()'));
+        }
         callback();
       } catch (err) {
         callback(err);

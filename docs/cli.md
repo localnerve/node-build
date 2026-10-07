@@ -70,39 +70,27 @@ node-build manifest --minify --target staging
 #                    └──────────┬──────────────┘  (your flags, passed through)
 ```
 
-A small parser turns `--name value` pairs into an object. The repository's own
-[`build.mjs`](../build.mjs) includes one you can lift:
+node-build ships a small parser you can import — **`parseArgs()`** (exported from
+`node-build` or `node-build/args`). It turns `--name value` pairs and bare `--flags`
+into an object, so your build file doesn't need to hand-roll argv logic:
 
 ```js
-/**
- * getTaskArguments parses command line arguments, --name value, to an object.
- *   node-build mytask --a 123 --b "my string" --c
- *   produces: { a: "123", b: "my string", c: true }
- * @param {String[]} argList - argument list (pass process.argv)
- * @returns {Object} the arguments as an object
- */
-function getTaskArguments(argList) {
-  const arg = {};
-  let a, opt, thisOpt, curOpt;
-  for (a = 0; a < argList.length; a++) {
-    thisOpt = argList[a].trim();
-    opt = thisOpt.replace(/^-+/, '');
+import { parseArgs } from 'node-build';
 
-    if (opt === thisOpt) {
-      // argument value
-      if (curOpt) arg[curOpt] = opt;
-      curOpt = null;
-    } else {
-      // argument name
-      curOpt = opt;
-      arg[curOpt] = true;
-    }
-  }
-  return arg;
-}
-
-const args = getTaskArguments(process.argv);
+const args = parseArgs(process.argv);
+// node-build mytask --a 123 --b "my string" --c
+//   -> { a: "123", b: "my string", c: true }
 ```
+
+How `parseArgs` decides what is a name and what is a value:
+
+- Any token starting with `-` is a **flag name** (mapped to `true` by default);
+  the leading dashes of any length are stripped, so `-a`, `--a`, and `---a`
+  all become `a`.
+- A following non-dash token is the **value** of the most recent flag name
+  (replacing its `true`).
+- A leading non-dash token with no preceding flag is ignored, and non-string
+  entries are skipped.
 
 Now any task can branch on those flags:
 

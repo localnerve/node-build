@@ -10,7 +10,9 @@
     "./file": "./src/file.js",
     "./task": "./src/task.js",
     "./stream": "./src/stream.js",
-    "./glob": "./src/glob.js"
+    "./glob": "./src/glob.js",
+    "./clean": "./src/clean.js",
+    "./args": "./src/args.js"
   },
   "scripts": {
     "build:example": "node ./bin/node-build.mjs",
