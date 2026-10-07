@@ -7,44 +7,12 @@
  * Copyright (c) 2026 Alex Grant (@localnerve), LocalNerve LLC
  * Licensed under the MIT license.
  */
-import { task, series, parallel, src, dest, through } from 'node-build';
+import { task, series, parallel, src, dest, through, parseArgs } from 'node-build';
 import path from 'node:path';
 import process from 'node:process';
 
-/**
- * getTaskArguments parses command line arguments, --name value, to an object
- *   `node-build mytask --a 123 --b "my string" --c`
- *   produces:
- *     {
- *       "a": "123",
- *       "b": "my string",
- *       "c": true
- *     }
- * @param {String[]} argList - List of arguments, process.argv
- * @returns {Object} The command line arguments as an object
- */
-function getTaskArguments (argList) {
-  const arg = {};
-  let a, opt, thisOpt, curOpt;
-  for (a = 0; a < argList.length; a++) {
-    thisOpt = argList[a].trim();
-    opt = thisOpt.replace(/^-+/, '');
-
-    if (opt === thisOpt) {
-      // argument value
-      if (curOpt) arg[curOpt] = opt;
-      curOpt = null;
-    }
-    else {
-      // argument name
-      curOpt = opt;
-      arg[curOpt] = true;
-    }
-  }
-  return arg;  
-}
-
-const args = getTaskArguments(process.argv);
+// `node-build mytask --a 123 --b "my string" --c` -> { a: "123", b: "my string", c: true }
+const args = parseArgs(process.argv);
 const cwd = process.cwd();
 
 // Copy HTML files, uppercasing any "TODO:" markers via a native transform.
@@ -77,9 +45,14 @@ task('manifest', async function makeManifest() {
 
 // Compose the above. Optional extra args can be forwarded to the manifest step
 // when invoked programmatically: `await build({ watch: true })`.
-export function build (buildArgs = {}) {
+function build (buildArgs = {}) {
   extraArgs = buildArgs;
   return parallel('html', 'css').then(() => series('manifest'));
 }
+
+// Declares what `node-build --watch` monitors for this build file. A function
+// default export may carry a `globs` property (functions are objects), so the
+// same export works in both one-shot and watch modes.
+build.globs = ['examples/src/**'];
 
 export default build;

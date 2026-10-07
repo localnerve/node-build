@@ -74,11 +74,11 @@ for someone who has never used Gulp or this project before. Start with
 | ----- | -------------- |
 | [Getting started](./docs/getting-started.md) | The mental model, install, and a first build (CLI + code). |
 | [Tasks, series & parallel](./docs/tasks.md) | `task()`, `series()`, `parallel()`, `run()`, `getTask()`, `listTasks()`, `seriesDefault()`, `runDefault()` — defining and composing work. |
-| [Streams: src, dest & through](./docs/streams.md) | `src()`, `dest()`, `through()`, and `pipeline()` — moving files in, transforming them, and writing them out. |
+| [Streams: src, dest & through](./docs/streams.md) | `src()`, `dest()`, `clean()`, `through()`, `watch()`, and `pipeline()` — moving files in, transforming them, writing them out, deleting, and re-running on change. |
 | [The File object](./docs/file.md) | The `File` class: `path`/`base`/`relative`/`contents`, type checks, `clone()`, `toJSON()`. |
 | [Globbing](./docs/glob.md) | Pattern syntax, `base` derivation, and the raw `globFiles()` / `deriveBase()` helpers. |
 | [Gulp plugin interop](./docs/gulp-plugins.md) | Reusing existing Gulp plugins, Vinyl auto-detection, and the `wrapFile()`/`unwrapFile()` byte-stream bridge. |
-| [The CLI](./docs/cli.md) | Invoking builds from the terminal, build-file discovery, and receiving your own `--flags` in a task. |
+| [The CLI](./docs/cli.md) | Invoking builds from the terminal, build-file discovery, `--watch`, and receiving your own `--flags` in a task. |
 
 ### Export reference (quick map)
 
@@ -88,7 +88,7 @@ for someone who has never used Gulp or this project before. Start with
   [`listTasks`](./docs/tasks.md), [`seriesDefault`](./docs/tasks.md)
 - **Streams:** [`src`](./docs/streams.md), [`dest`](./docs/streams.md),
   [`through`](./docs/streams.md), [`clean`](./docs/streams.md),
-  [`pipeline`](./docs/streams.md),
+  [`watch`](./docs/streams.md#watch), [`pipeline`](./docs/streams.md),
   [`wrapFile`](./docs/gulp-plugins.md), [`unwrapFile`](./docs/gulp-plugins.md)
 - **Files:** [`File`](./docs/file.md), [`resolveFileClass`](./docs/gulp-plugins.md),
   [`resolveFileClassSync`](./docs/gulp-plugins.md)
