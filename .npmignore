@@ -1,0 +1,9 @@
+tmp
+test
+.github
+.vscode
+coverage
+.gitignore
+.nvmrc
+eslint.config.js
+*.log

@@ -156,3 +156,7 @@ npm test        # node --test (11 tests, incl. a gulp-plugin-style interop test)
   building your own `Readable.from(...)`.
 - **`base` derivation** mirrors glob-stream's static-prefix rule for common
   patterns; override with `src(patterns, { base })` when you need exact control.
+
+## LICENSE
+
+* MIT - Copyright 2026 Alex Grant, LocalNerve, LLC

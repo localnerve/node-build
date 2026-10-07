@@ -4,10 +4,6 @@
   "description": "A no-dependency, Node 24+ streaming build runner that replaces gulp while staying compatible with existing gulp plugins and Vinyl file objects.",
   "type": "module",
   "license": "MIT",
-  "author": "",
-  "engines": {
-    "node": ">=24.0.0"
-  },
   "main": "./src/index.js",
   "exports": {
     ".": "./src/index.js",
@@ -17,8 +13,9 @@
     "./glob": "./src/glob.js"
   },
   "scripts": {
-    "test": "node --test",
-    "build:example": "node ./bin/node-build.mjs"
+    "build:example": "node ./bin/node-build.mjs",
+    "pretest": "node -e \"const fs=require('fs'); fs.rmSync('coverage', {recursive:true, force:true}); fs.mkdirSync('coverage')\"",
+    "test": "node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage/lcov.info"
   },
   "keywords": [
     "build",
@@ -31,6 +28,32 @@
   "files": [
     "src",
     "bin",
-    "README.md"
-  ]
+    "README.md",
+    "LICENSE.md"
+  ],
+  "author": "Alex Grant <alex@localnerve.com> (https://www.localnerve.com)",
+  "contributors": [
+    {
+      "name": "Alex Grant",
+      "email": "alex@localnerve.com",
+      "url": "https://www.localnerve.com"
+    }
+  ],
+  "funding": [
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/localnerve"
+    },
+    {
+      "type": "paypal",
+      "url": "https://www.paypal.com/ncp/payment/DHCB5GUYMGX5U"
+    }
+  ],
+  "bugs": {
+    "url": "https://github.com/localnerve/node-build/issues"
+  },
+  "homepage": "https://github.com/localnerve/node-build#readme",
+  "engines": {
+    "node": ">=24.0.0"
+  }
 }
