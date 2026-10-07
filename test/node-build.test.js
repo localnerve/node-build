@@ -1,3 +1,9 @@
+/**
+ * node-build — test suite.
+ * 
+ * Copyright (c) 2026 Alex Grant (@localnerve), LocalNerve LLC
+ * Licensed under the MIT license.
+ */
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fsSync from 'node:fs';

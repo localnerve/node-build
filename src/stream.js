@@ -1,21 +1,18 @@
+/**
+ * node-build — streaming core.
+ * 
+ * src() yields File objects matching glob patterns; dest() writes them to disk;
+ * through(fn) provides an object-mode Transform for native build steps. The
+ * runner stays free of vinyl, using whatever file class resolves for the project.
+ * 
+ * Copyright (c) 2026 Alex Grant (@localnerve), LocalNerve LLC
+ * Licensed under the MIT license.
+ */
 import fs from 'node:fs';
 import path from 'node:path';
 import { Readable, Writable, Transform } from 'node:stream';
 import { globFiles, deriveBase } from './glob.js';
 import { resolveFileClassSync } from './vinyl.js';
-
-/**
- * Streaming core for node-build.
- *
- * - src()  -> a Readable (object mode) that yields File objects for each file
- *             matching the glob pattern(s). base is derived gulp-style.
- * - dest() -> a Writable (object mode) that writes each File to disk, preserving
- *             its relative path under the destination directory.
- * - through(fn) -> an object-mode Transform for writing native build steps.
- *
- * The runner stays free of vinyl: it uses whatever file class resolves for the
- * project (real vinyl if present, otherwise the built-in shim).
- */
 
 /** Build a File instance using the project's resolved file class. */
 function makeFile(fromPath) {
@@ -34,7 +31,7 @@ async function* fileGenerator(patterns, opts, cwd) {
         ? await fs.promises.readFile(file, opts.encoding)
         : await fs.promises.readFile(file);
     } catch (err) {
-      throw new Error(`node-build: failed to read ${file}: ${err.message}`);
+      throw new Error(`node-build: failed to read ${file}: ${err.message}`, { cause: err });
     }
     const f = makeFile(opts.from ?? cwd);
     f.path = file;

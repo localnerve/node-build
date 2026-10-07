@@ -13,6 +13,7 @@
     "./glob": "./src/glob.js"
   },
   "scripts": {
+    "lint": "eslint .",
     "build:example": "node ./bin/node-build.mjs",
     "pretest": "node -e \"const fs=require('fs'); fs.rmSync('coverage', {recursive:true, force:true}); fs.mkdirSync('coverage')\"",
     "test": "node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage/lcov.info"
@@ -49,6 +50,12 @@
       "url": "https://www.paypal.com/ncp/payment/DHCB5GUYMGX5U"
     }
   ],
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.11.0",
+    "eslint-plugin-n": "^18.4.0",
+    "globals": "^17.12.0"
+  },
   "bugs": {
     "url": "https://github.com/localnerve/node-build/issues"
   },

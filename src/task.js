@@ -1,17 +1,13 @@
 /**
- * Task registry and scheduler for node-build.
- *
- * A "task" is a function (or an array of tasks). It may be:
- *   - sync, or
- *   - async (returns a Promise), or
- *   - stream-returning (returns a Readable/Transform — e.g. src().pipe(...)),
- *     in which case the task completes when that stream finishes.
- *
- * series(...) runs tasks one after another, stopping on the first error.
- * parallel(...) runs tasks concurrently and resolves when all succeed.
- * Both return a Promise (unlike gulp, which is callback-first) for modern usage.
+ * node-build — task registry and scheduler.
+ * 
+ * A "task" is a function (or an array of tasks). It may be sync, async, or
+ * stream-returning. series() runs tasks sequentially; parallel() runs them
+ * concurrently. Both return Promises for modern usage.
+ * 
+ * Copyright (c) 2026 Alex Grant (@localnerve), LocalNerve LLC
+ * Licensed under the MIT license.
  */
-
 import { isReadable as streamIsReadable } from 'node:stream';
 import { finished as streamFinished } from 'node:stream/promises';
 
@@ -69,6 +65,7 @@ async function finishStream(stream) {
     if (isWritableSide(stream)) {
       await streamFinished(stream, { readable: false });
     } else {
+      // eslint-disable-next-line no-unused-vars
       for await (const _chunk of stream) { /* drain to 'end' */ }
     }
   } else {

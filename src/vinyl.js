@@ -1,22 +1,18 @@
+/**
+ * node-build — vinyl file class resolver.
+ * 
+ * Resolves the best available Vinyl-compatible file class: uses a real `vinyl`
+ * package when resolvable from the project for maximum gulp plugin compatibility,
+ * otherwise falls back to the built-in zero-dependency shim (src/file.js).
+ * Detection is memoised per resolved path.
+ * 
+ * Copyright (c) 2026 Alex Grant (@localnerve), LocalNerve LLC
+ * Licensed under the MIT license.
+ */
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { File as ShimFile } from './file.js';
 
-/**
- * Resolve the best available Vinyl-compatible file class.
- *
- * Strategy (auto-detect):
- *   1. If a real `vinyl` package is resolvable from `fromPath`, use it — this
- *      gives maximum compatibility with gulp plugins that do `instanceof Vinyl`
- *      or import vinyl internals.
- *   2. Otherwise fall back to the built-in zero-dependency shim (src/file.js).
- *
- * Detection is memoised per resolved path so repeated src()/dest() calls are cheap.
- *
- * @param {string} [fromPath] Absolute path of the build file / project that should
- *   be used as the resolution base for locating `vinyl`. Defaults to process.cwd().
- * @returns {Promise<{ Vinyl: Function, source: 'vinyl'|'shim' }>}
- */
 const cache = new Map();
 
 export async function resolveFileClass(fromPath) {
@@ -36,14 +32,13 @@ export function resolveFileClassSync(fromPath) {
   const base = path.resolve(fromPath ?? process.cwd());
   if (cache.has(base)) return cache.get(base);
 
-  let Vinyl = null;
+  let Vinyl;
   try {
     const requireFromBase = createRequire(base.endsWith(path.sep) ? base : path.join(base, 'noop.js'));
-    // eslint-disable-next-line no-undef
     Vinyl = requireFromBase('vinyl');
     if (Vinyl && Vinyl.default) Vinyl = Vinyl.default;
   } catch {
-    Vinyl = null;
+    Vinyl = undefined;
   }
 
   const entry = Vinyl

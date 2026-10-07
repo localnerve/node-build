@@ -1,19 +1,18 @@
 #!/usr/bin/env node
+/**
+ * node-build CLI.
+ * 
+ * Loads a build module (default: ./build.mjs, then ./gulpfile.mjs for easy
+ * migration), imports it so its task() registrations are recorded, then runs the
+ * requested task (or the default / all tasks) and exits non-zero on failure.
+ * 
+ * Copyright (c) 2026 Alex Grant (@localnerve), LocalNerve LLC
+ * Licensed under the MIT license.
+ */
 import { pathToFileURL } from 'node:url';
 import path from 'node:path';
 import process from 'node:process';
 import fs from 'node:fs';
-
-/**
- * node-build CLI.
- *
- * Usage:
- *   node-build [taskName] [--config <file>]
- *
- * Loads a build module (default: ./build.mjs, then ./gulpfile.mjs for easy
- * migration), imports it so its task() registrations are recorded, then runs the
- * requested task (or the default / all tasks) and exits non-zero on failure.
- */
 
 const BUILD_FILE_CANDIDATES = ['build.mjs', 'build.js', 'gulpfile.mjs', 'gulpfile.js'];
 
