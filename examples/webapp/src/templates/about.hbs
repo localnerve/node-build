@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>About — {{name}}</title>
+    <link rel="stylesheet" href="/assets/css/site.css">
+  </head>
+  <body>
+    <header class="card">
+      <h1>About</h1>
+      <p>{{description}}</p>
+    </header>
+    <main class="card">
+      <ul>
+        {{#each pages}}
+        <li><a href="{{this.path}}">{{this.title}}</a></li>
+        {{/each}}
+      </ul>
+    </main>
+    <footer>
+      <a href="/">Home</a>
+    </footer>
+  </body>
+</html>

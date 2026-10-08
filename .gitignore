@@ -36,6 +36,7 @@ build/Release
 
 # Dependency directories
 /node_modules
+examples/webapp/node_modules
 
 jspm_packages/
 
