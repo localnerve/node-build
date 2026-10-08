@@ -368,7 +368,7 @@ The binary is `bin/nbs` (installed as `nbs`). Not an importable API — see
 [cli.md](./cli.md) for full docs. Quick reference:
 
 ```
-nbs [task] [--config <file>] [--watch] [--list] [--help] [unknown flags passed through]
+nbs [task] [--config <file>] [--watch] [--list] [--glob <pattern>...] [--json] [--help] [unknown flags passed through]
 ```
 
 - Build file resolution: `--config`/`-c` path first, else the first existing of
@@ -380,6 +380,11 @@ nbs [task] [--config <file>] [--watch] [--list] [--help] [unknown flags passed t
   (use `parseArgs()` there); once an unknown flag appears, later non-dash tokens
   are NOT treated as a task name.
 - `--list`/`-l`: prints registered tasks one per line and exits, runs nothing.
+- `--glob <pattern>`: repeatable; lists what each pattern matches via
+  `globFiles()`/`deriveBase()` (matches relative to the pattern's base). Handled
+  BEFORE build-file discovery — works with no build file present. No match is
+  not an error (exit 0, "(no matches)" text / empty array JSON). `--json` emits
+  one object per pattern: `{pattern, base, matches}`.
 - `--watch`: flag (the watched task is the positional `[task]`, else the default).
   Globs come from the build file's default export — an object `{globs:[…]}` or a
   function carrying a `.globs` property; errors clearly when absent. Stops on

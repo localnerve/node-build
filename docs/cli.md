@@ -9,6 +9,7 @@ receive **your own** command-line arguments inside a task.
 
 ```sh
 node /path/to/node-build/bin/nbs [taskName] [--config <file>] [--watch] [--list]
+node /path/to/node-build/bin/nbs --glob <pattern>... [--json]
 ```
 
 | Argument            | Meaning                                                        |
@@ -17,6 +18,8 @@ node /path/to/node-build/bin/nbs [taskName] [--config <file>] [--watch] [--list]
 | `--config`, `-c`    | Explicit path to your build module.                            |
 | `--watch`           | Build, then re-run on asset changes (see [Watching](#watching)). |
 | `--list`, `-l`      | Print the names of all registered tasks and exit — runs nothing. |
+| `--glob <pattern>`  | List what a glob pattern matches, without building — repeatable, needs no build file (see [Glob report](#glob-report)). |
+| `--json`            | Machine-readable output for `--glob`.                          |
 | `--help`, `-h`      | Print usage and exit.                                          |
 
 The package ships a `bin` entry, so once it is installed (or linked) in your
@@ -76,6 +79,37 @@ manifest
 This is the same registry behind the exported [`listTasks()`](./tasks.md), so
 what you see here is exactly what the CLI (and your build file) can run. If no
 tasks are registered it prints `No tasks registered.` and still exits 0.
+
+## Glob report
+
+`--glob <pattern>` lists the files a pattern would match, **without building** —
+a quick way to sanity-check globs before wiring them into a pipeline (it is the
+same [`globFiles()` / `deriveBase()`](./glob.md) machinery your streams use). It
+is handled *before* build-file discovery, so it works in any directory, even
+one with no build file at all:
+
+```sh
+$ node ./bin/nbs --glob 'examples/basic/src/**/*.{html,css}'
+pattern: examples/basic/src/**/*.{html,css}
+base:    examples/basic/src
+---
+index.html
+style.css
+```
+
+- Pass the flag multiple times to report on several patterns in one run.
+- Matches print relative to the pattern's base directory (the longest static
+  leading portion — see [`deriveBase()`](./glob.md)).
+- A pattern that matches nothing is not an error: it prints `(no matches)` and
+  the CLI still exits 0.
+- Add `--json` for machine/agent consumption — one object per pattern:
+
+  ```sh
+  $ node ./bin/nbs --glob 'src/**' --json
+  [
+    { "pattern": "src/**", "base": "src", "matches": ["index.html", "style.css"] }
+  ]
+  ```
 
 ## Receiving your own CLI arguments
 

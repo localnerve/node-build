@@ -5,6 +5,7 @@
  * Loads a build module (default: ./build.mjs, then ./gulpfile.mjs for easy
  * migration), imports it so its task() registrations are recorded, then runs the
  * requested task (or the default / all tasks) and exits non-zero on failure.
+ * --glob reports what patterns match without loading any build file.
  * 
  * Copyright (c) 2026 Alex Grant (@localnerve), LocalNerve LLC
  * Licensed under the MIT license.
@@ -25,10 +26,10 @@ const BUILD_FILE_CANDIDATES = ['build.mjs', 'build.js', 'gulpfile.mjs', 'gulpfil
  * alone for the build module, per the pass-through contract.
  *
  * @param {string[]} argv Process argument list (without node + script path).
- * @returns {{ task: string|null, config: string|null, help: boolean, watch: boolean, list: boolean }} The parsed CLI options.
+ * @returns {{ task: string|null, config: string|null, help: boolean, watch: boolean, list: boolean, globs: string[], json: boolean }} The parsed CLI options.
  */
 function parseArgs(argv) {
-  const args = { task: null, config: null, help: false, watch: false, list: false };
+  const args = { task: null, config: null, help: false, watch: false, list: false, globs: [], json: false };
   let seenUnknownFlag = false;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -36,6 +37,8 @@ function parseArgs(argv) {
     else if (a === '--help' || a === '-h') args.help = true;
     else if (a === '--watch') args.watch = true;
     else if (a === '--list' || a === '-l') args.list = true;
+    else if (a === '--glob') args.globs.push(argv[++i]);
+    else if (a === '--json') args.json = true;
     else if (a.startsWith('-')) seenUnknownFlag = true;
     else if (!seenUnknownFlag) args.task = a;
   }
@@ -47,11 +50,16 @@ function printHelp() {
 
 Usage:
   node-build [taskName] [--config <file>] [--watch] [--list]
+  node-build --glob <pattern>... [--json]
 
 Options:
   --config, -c   Path to the build module (default: ./build.mjs or ./gulpfile.mjs)
   --watch        Build, then re-run on asset changes (see the build file's default export for its globs)
   --list, -l     Print the names of all registered tasks and exit (runs nothing)
+  --glob         List the files a glob pattern would match, without building
+                 (repeatable; needs no build file). Matches print relative to the
+                 pattern's base directory.
+  --json         Machine-readable output for --glob: one JSON object per pattern
   --help, -h     Show this help
 
 The build module exports nothing special; it calls task()/series()/parallel() from
@@ -87,6 +95,37 @@ async function findBuildFile(explicit) {
  * @param {{ task: string|null }} args Parsed CLI options.
  * @param {any} mod The imported build module (its default export may carry globs).
  */
+/**
+ * Print what each glob pattern matches — a pure dev tool that needs no build
+ * file. Text mode mirrors the per-pattern layout (pattern / base / one match
+ * per line relative to base); --json emits one object per pattern:
+ * { pattern, base, matches }. No matches is not an error: exit 0 with a
+ * "(no matches)" note in text mode, an empty array in JSON mode.
+ *
+ * @param {{ globs: string[], json: boolean }} args Parsed CLI options.
+ */
+async function globReport(args) {
+  const mod = await import(new URL('../src/index.js', import.meta.url).href);
+  const cwd = process.cwd();
+  const report = [];
+  for (const pattern of args.globs) {
+    const base = mod.deriveBase(pattern, cwd);
+    const files = await mod.globFiles(pattern, { cwd });
+    report.push({ pattern, base: path.relative(cwd, base) || '.', matches: files.map((f) => path.relative(base, f)) });
+  }
+  if (args.json) {
+    console.log(JSON.stringify(report, null, 2));
+    return;
+  }
+  for (const entry of report) {
+    console.log(`pattern: ${entry.pattern}`);
+    console.log(`base:    ${entry.base}`);
+    console.log('---');
+    if (entry.matches.length === 0) console.log('(no matches)');
+    else for (const m of entry.matches) console.log(m);
+  }
+}
+
 async function watchMode(args, mod) {
   const { watch } = await import(new URL('../src/index.js', import.meta.url).href);
 
@@ -122,6 +161,13 @@ async function main() {
   const args = parseArgs(process.argv.slice(2));
   if (args.help) {
     printHelp();
+    return;
+  }
+
+  // --glob is a pure dev tool: it runs before build-file discovery, so it
+  // works in any directory — even one with no build file at all.
+  if (args.globs.length > 0) {
+    await globReport(args);
     return;
   }
 

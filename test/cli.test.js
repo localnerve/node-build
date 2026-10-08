@@ -107,6 +107,8 @@ test('CLI --help and -h print usage without needing a build file', async () => {
     assert.match(stdout, /Usage:/);
     assert.match(stdout, /--list/);
     assert.match(stdout, /--watch/);
+    assert.match(stdout, /--glob/);
+    assert.match(stdout, /--json/);
   }
 });
 
@@ -245,4 +247,61 @@ test('CLI --watch builds, re-runs on change, and stops cleanly on SIGINT', async
   const { code } = await done;
   assert.equal(code, 0);
   assert.match(state.stdout, /watcher stopped/);
+});
+
+test('CLI --glob reports matches without any build file present', async () => {
+  const cwd = await freshDir(); // deliberately empty — no build file at all
+  await fs.mkdir(path.join(cwd, 'src'));
+  await fs.writeFile(path.join(cwd, 'src', 'index.html'), '<html></html>');
+  await fs.mkdir(path.join(cwd, 'src', 'css'));
+  await fs.writeFile(path.join(cwd, 'src', 'css', 'site.css'), 'a{}');
+  const { code, stdout } = await (await spawnCli(['--glob', 'src/**'], cwd)).done;
+  assert.equal(code, 0);
+  assert.match(stdout, /pattern: src\/\*\*/);
+  assert.match(stdout, /base:\s+src/);
+  assert.match(stdout, /^index\.html$/m);
+  assert.match(stdout, /^css\/site\.css$/m); // matches are relative to the base
+  assert.ok(!stdout.includes('build complete'), '--glob must not run a build');
+});
+
+test('CLI --glob with no matches exits 0 and says so', async () => {
+  const cwd = await freshDir(); // empty dir: bare ** also exercises base == cwd → "."
+  const { code, stdout } = await (await spawnCli(['--glob', '**'], cwd)).done;
+  assert.equal(code, 0);
+  assert.match(stdout, /base:\s+\./);
+  assert.match(stdout, /\(no matches\)/);
+});
+
+test('CLI --glob accepts repeatable patterns and never runs the build', async () => {
+  const cwd = await freshDir();
+  const marker = path.join(cwd, 'ran.txt');
+  await fs.mkdir(path.join(cwd, 'src'));
+  await fs.writeFile(path.join(cwd, 'src', 'a.html'), '');
+  await fs.writeFile(path.join(cwd, 'src', 'b.css'), '');
+  const source = [
+    'import { writeFileSync } from \'node:fs\';',
+    `import { task } from '${INDEX}';`,
+    `task('all', () => { writeFileSync(${JSON.stringify(marker)}, 'ran'); });`,
+  ].join('\n') + '\n';
+  await fs.writeFile(path.join(cwd, 'build.mjs'), source, 'utf8'); // present but must stay untouched
+  const { code, stdout } = await (await spawnCli(['--glob', 'src/*.html', '--glob', 'src/*.css'], cwd)).done;
+  assert.equal(code, 0);
+  assert.match(stdout, /pattern: src\/\*\.html/);
+  assert.match(stdout, /pattern: src\/\*\.css/);
+  assert.match(stdout, /^a\.html$/m);
+  assert.match(stdout, /^b\.css$/m);
+  await assert.rejects(fs.access(marker), 'the build must not have run');
+});
+
+test('CLI --glob --json emits parseable machine-readable output', async () => {
+  const cwd = await freshDir();
+  await fs.mkdir(path.join(cwd, 'src'));
+  await fs.writeFile(path.join(cwd, 'src', 'a.html'), '');
+  await fs.writeFile(path.join(cwd, 'src', 'b.css'), '');
+  const { code, stdout } = await (await spawnCli(['--glob', 'src/*.{html,css}', '--json'], cwd)).done;
+  assert.equal(code, 0);
+  const report = JSON.parse(stdout);
+  assert.deepEqual(report, [
+    { pattern: 'src/*.{html,css}', base: 'src', matches: ['a.html', 'b.css'] },
+  ]);
 });
