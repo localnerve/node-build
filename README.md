@@ -70,8 +70,12 @@ Each feature of the public API has its own guide in [`docs/`](./docs/), written
 for someone who has never used Gulp or this project before. Start with
 [Getting started](./docs/getting-started.md).
 
+Need the whole API surface in one load? See the
+[API reference](./docs/api.md) — every entry point, export, signature, and return type.
+
 | Guide | What it covers |
 | ----- | -------------- |
+| [API reference](./docs/api.md) | The complete export surface in one dense file: entry points, signatures, params, returns. |
 | [Getting started](./docs/getting-started.md) | The mental model, install, and a first build (CLI + code). |
 | [Tasks, series & parallel](./docs/tasks.md) | `task()`, `series()`, `parallel()`, `run()`, `getTask()`, `listTasks()`, `seriesDefault()`, `runDefault()` — defining and composing work. |
 | [Streams: src, dest & through](./docs/streams.md) | `src()`, `dest()`, `clean()`, `through()`, `watch()`, and `pipeline()` — moving files in, transforming them, writing them out, deleting, and re-running on change. |
