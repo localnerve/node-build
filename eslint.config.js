@@ -41,7 +41,10 @@ export default [{
   }
 }, {
   name: 'mjs_entry_points',
-  files: ['**/*.mjs'],
+  files: [
+    'bin/nbs',
+    '**/*.mjs'
+  ],
   plugins: {
     n: nodePlugin
   },

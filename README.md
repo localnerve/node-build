@@ -50,7 +50,7 @@ Point your project at the package, then run a build file with the bundled CLI:
 ```
 
 ```sh
-node /path/to/node-build/bin/node-build.mjs [taskName] [--config ./build.mjs]
+node /path/to/node-build/bin/nbs [taskName] [--config ./build.mjs]
 ```
 
 Or drive tasks from code — everything returns Promises:
@@ -61,7 +61,7 @@ task('hello', async () => console.log('hi'));
 await series('hello');
 ```
 
-A complete, runnable build lives in [`build.mjs`](./build.mjs) with inputs in
+A complete, runnable build lives in [`examples/build.mjs`](./examples/build.mjs) with inputs in
 [`examples/src/`](./examples/) — try `npm run build:example` from this repository.
 
 ## Documentation
