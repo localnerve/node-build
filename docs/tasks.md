@@ -143,5 +143,23 @@ steps in series, and a declared default.
 - **Mixing up series vs parallel for dependent steps.** A manifest written in
   `parallel` with the copies that feed it is a race condition; keep it in
   `series`.
+- **Passing a bare `parallel(...)` promise into `series()`.** Every item
+  expression is evaluated *when you build the call* — before `series()` runs
+  anything — so an argument like `series(clean, parallel(a, b, c))` starts
+  `a`, `b` and `c` **immediately**, racing the earlier steps (files can be
+  written while `clean` is still deleting). Items are thunks: wrap any
+  composed call in a zero-arg function so it is *called* only when series
+  reaches that slot:
+
+  ```js
+  // Broken — parallel() runs during argument evaluation, before clean():
+  await series(cleanStage, parallel(styles, scripts, assets));
+
+  // Correct — the thunk defers the call until series reaches step two:
+  await series(cleanStage, () => parallel(styles, scripts, assets), revision);
+  ```
+
+  The same trap applies to any eager expression as an item (a `.then()` chain,
+  a direct `fetch(...)`); if it starts work on its own, wrap it in `() => …`.
 
 Next: [Streams](./streams.md) — how files actually move through your build.

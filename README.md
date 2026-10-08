@@ -64,6 +64,9 @@ await series('hello');
 A complete, runnable build lives in [`examples/basic/build.mjs`](./examples/basic/build.mjs) with inputs in
 [`examples/basic/src/`](./examples/basic/src/) — try `npm run build:example` from this repository.
 
+[`examples/webapp/`](./examples/webapp/) is a full multi-stage pipeline (clean → parallel stream + async
+producers → fingerprinting/manifest) written as a reusable `createBuild(settings, siteData)` factory.
+
 ## Documentation
 
 Each feature of the public API has its own guide in [`docs/`](./docs/), written

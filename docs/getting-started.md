@@ -112,3 +112,20 @@ full API.
 A complete, runnable build lives in [`../examples/basic/build.mjs`](../examples/basic/build.mjs) with inputs
 in [`examples/basic/src/`](../examples/basic/src/) — try `npm run build:example` from the
 node-build repository root.
+
+### Full pipeline example
+
+[`../examples/webapp/`](../examples/webapp/) is a complete webapp build — clean, parallel styles/scripts/assets
+stages (stream and async), fingerprinting, and a manifest — shaped as a factory:
+
+```js
+import { createBuild } from './builder/index.js';
+
+const settings = createSettings({ prod: args.prod });
+export default createBuild(settings, siteData);   // zero-arg async build fn
+```
+
+The factory registers nothing globally and closes only over `settings` and
+`siteData`, so many builds can coexist in one process — the shape a standalone
+multi-site builder extracts and reuses. Note its critical composition detail in
+[Common pitfalls](./tasks.md#common-pitfalls): the parallel stage is wrapped in an arrow thunk.
