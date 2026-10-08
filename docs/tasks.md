@@ -36,7 +36,7 @@ await series(copyCss);  // passing the function directly works too
 
 ### `series(...items)` — one after another
 
-Runs each item in order and **stops at the first error**:
+Builds a schedule that runs each item in order and **stops at the first error**:
 
 ```js
 import { series } from 'node-build';
@@ -47,8 +47,8 @@ await series('clean', 'build', 'manifest');
 
 ### `parallel(...items)` — all at once
 
-Runs every item **concurrently** and resolves when all succeed; it rejects on
-the first error:
+Builds a schedule that runs every item **concurrently** and resolves when all
+succeed; it rejects on the first error:
 
 ```js
 import { parallel } from 'node-build';
@@ -59,6 +59,24 @@ await parallel('copyHtml', 'copyCss');  // both start immediately
 Use `parallel` for independent work (copying HTML and CSS are unrelated), and
 `series` when one step depends on another (you cannot write a manifest before
 the files exist).
+
+### Schedules are lazy
+
+`series()` and `parallel()` do not start anything when you call them — they
+return a **schedule**, an awaitable object that starts its tasks the first
+time it is awaited (or `.then`'d), and never re-runs if awaited again. This
+matters for composition: because argument expressions are evaluated before
+`series()` runs, a nested schedule is simply *passed along* — it only starts
+when the outer schedule reaches it:
+
+```js
+// Safe as written: the parallel schedule starts AFTER clean finishes,
+// not while series() arguments are being evaluated.
+await series(cleanStage, parallel(styles, scripts, assets), revision);
+```
+
+Awaiting a schedule twice (or passing it to two places) never re-runs its
+tasks — both awaits observe the single execution.
 
 ### What can you pass?
 
@@ -143,23 +161,19 @@ steps in series, and a declared default.
 - **Mixing up series vs parallel for dependent steps.** A manifest written in
   `parallel` with the copies that feed it is a race condition; keep it in
   `series`.
-- **Passing a bare `parallel(...)` promise into `series()`.** Every item
-  expression is evaluated *when you build the call* — before `series()` runs
-  anything — so an argument like `series(clean, parallel(a, b, c))` starts
-  `a`, `b` and `c` **immediately**, racing the earlier steps (files can be
-  written while `clean` is still deleting). Items are thunks: wrap any
-  composed call in a zero-arg function so it is *called* only when series
-  reaches that slot:
+- **Other self-starting expressions are NOT lazy.** Schedules (`series`/
+  `parallel`) defer their work until awaited, but any *other* expression passed
+  as an item runs the moment you evaluate the arguments — a direct
+  `fetch(...)`, a `.then()` chain that already kicked off I/O, a plugin call
+  doing work. Wrap those in a zero-arg function so they run only when the
+  schedule reaches that slot:
 
   ```js
-  // Broken — parallel() runs during argument evaluation, before clean():
-  await series(cleanStage, parallel(styles, scripts, assets));
+  // fetch() fires during argument evaluation — before clean() has run.
+  await series(cleanStage, fetchRemoteConfig());
 
-  // Correct — the thunk defers the call until series reaches step two:
-  await series(cleanStage, () => parallel(styles, scripts, assets), revision);
+  // Correct — the thunk defers the call until series reaches step two.
+  await series(cleanStage, () => fetchRemoteConfig(), revision);
   ```
-
-  The same trap applies to any eager expression as an item (a `.then()` chain,
-  a direct `fetch(...)`); if it starts work on its own, wrap it in `() => …`.
 
 Next: [Streams](./streams.md) — how files actually move through your build.

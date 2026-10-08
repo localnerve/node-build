@@ -81,29 +81,35 @@ All registered task names, in registration order.
 ### `series(...items)`
 
 ```ts
-function series(...items: TaskItem[]): Promise<any[]>;
-type TaskItem = string | TaskFn | NodeJS stream | Promise<any> | null | undefined;
+function series(...items: TaskItem[]): LazySchedule<any[]>;
+type TaskItem = string | TaskFn | NodeJS stream | thenable | null | undefined;
+type LazySchedule<T> = { then(res?: (v: T) => any, rej?: (e: any) => any): Promise<any> };
 ```
 
+- Returns a **lazy schedule**: nothing runs until it is first `await`ed (or
+  `.then`'d); awaiting it again never re-runs. This is why nested schedules are
+  safe as items — `series(clean, parallel(a, b, c))` starts the parallel only
+  when series reaches that slot.
 - Runs items **sequentially**, stops at the first error (rejects with it).
 - Nested arrays are flattened (`args.flat(Infinity)`).
 - `null`/`undefined` items are ignored. Strings resolve via `getTask`.
-  Functions run directly. Streams are awaited to completion. Thenables awaited
-  as-is (their resolved value becomes the result entry).
-- **returns** array of per-task results in input order (stream items and thenable
-  skips may yield fewer entries — stream completion contributes no value unless
-  the task fn returned one).
-- **throws** `TypeError` for unrecognized item types.
+  Functions run directly. Streams are awaited to completion. Thenables
+  (Promises, schedules) awaited as-is (their resolved value becomes the result
+  entry; a schedule item starts when reached).
+- **resolves to** array of per-task results in input order (stream items and
+  thenable skips may yield fewer entries — stream completion contributes no
+  value unless the task fn returned one).
+- **rejects** with `TypeError` for unrecognized item types.
 
 ### `parallel(...items)`
 
 ```ts
-function parallel(...items: TaskItem[]): Promise<any[]>;
+function parallel(...items: TaskItem[]): LazySchedule<any[]>;
 ```
 
 Same accepted items as `series()`, run **concurrently** via `Promise.allSettled`;
 rejects on the first error (others keep running to settle). Results in input
-order.
+order. Equally lazy — see `series()`.
 
 ### `run(nameOrFn)`
 

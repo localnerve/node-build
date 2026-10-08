@@ -53,16 +53,15 @@ export function createBuild (settings, siteData) {
       /** @returns {Promise<void>} */ (async () => {
         await clean(settings.dist, { cwd: settings.root });
       }),
-      // The three producers are independent — run them concurrently. NOTE: the
-      // arrow wrapper is essential: series items are thunks, so parallel() must
-      // be CALLED when the thunk runs. Passing a bare parallel(...) promise as
-      // an item would start all three producers immediately (while evaluating
-      // series' arguments) — racing clean() and losing files mid-write.
-      /** @returns {Promise<unknown[]>} */ (() => parallel(
+      // The three producers are independent — run them concurrently. Safe to
+      // pass the bare parallel(...) schedule as an item: series() and
+      // parallel() return LAZY schedules that start only when first awaited,
+      // so nothing here runs until series reaches this slot (after clean).
+      parallel(
         createStylesStage(settings),
         createScriptsStage(settings),
         createAssetsStage(settings, siteData),
-      )),
+      ),
       // revision needs every asset + page on disk first.
       createRevisionStage(settings),
     );

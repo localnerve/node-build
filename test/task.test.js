@@ -26,7 +26,9 @@ test('series runs tasks in order and stops on error', async () => {
 
   task('boom', async () => { throw new Error('exploded'); });
   task('after-boom', async () => { order.push('after'); });
-  await assert.rejects(series('boom', 'after-boom'), /exploded/);
+  // Schedules are lazy thenables, not Promise instances; assert.rejects only
+  // accepts Promises or functions, so adopt the schedule via Promise.resolve.
+  await assert.rejects(Promise.resolve(series('boom', 'after-boom')), /exploded/);
   assert.ok(!order.includes('after'));
 });
 
@@ -40,6 +42,62 @@ test('parallel runs tasks concurrently and aggregates results', async () => {
   assert.deepEqual(r, [1, 2, 3]);
   // All three slept ~30ms; concurrency means total is well under 90ms.
   assert.ok(Date.now() - t0 < 85, `took too long: ${Date.now() - t0}ms`);
+});
+
+test('schedules are lazy: nothing runs until first awaited', async () => {
+  const order = [];
+  const inner = parallel(
+    async () => { order.push('p1'); },
+    async () => { order.push('p2'); },
+  );
+  // Not yet awaited — the argument evaluation of series() must not start it.
+  const outer = series(async () => { order.push('first'); }, inner);
+  await new Promise((r) => setTimeout(r, 10));
+  assert.deepEqual(order, [], 'no task ran before the schedule was awaited');
+
+  await outer;
+  assert.deepEqual(order, ['first', 'p1', 'p2']);
+});
+
+test('a nested parallel as a series item starts only when reached (the old footgun)', async () => {
+  const order = [];
+  // The exact shape that raced clean() before lazy schedules: bare parallel(...)
+  // as a series item. It must now run AFTER 'clean', never during arg eval.
+  await series(
+    async () => { order.push('clean'); },
+    parallel(
+      async () => { order.push('a'); },
+      async () => { order.push('b'); },
+    ),
+    async () => { order.push('after'); },
+  );
+  assert.deepEqual(order, ['clean', 'a', 'b', 'after']);
+});
+
+test('awaiting the same schedule twice never re-runs its tasks', async () => {
+  let n = 0;
+  const once = parallel(async () => { n += 1; });
+  await once;
+  await once;
+  assert.equal(n, 1);
+});
+
+test('series() and parallel() expose a working .then (usable with Promise helpers)', async () => {
+  const s = series(() => Promise.resolve(7));
+  assert.equal(typeof s.then, 'function');
+  // Direct .then works…
+  await new Promise((resolve, reject) => s.then((r) => resolve(r), reject));
+  // …and native Promise combinators adopt the thenable.
+  const p = await parallel(() => Promise.resolve(1), () => Promise.resolve(2)).then((r) => r);
+  assert.deepEqual(p, [1, 2]);
+});
+
+test('an un-awaited schedule is a no-op (fire-and-forget schedules start nothing)', async () => {
+  let n = 0;
+  // Deliberately never awaited: the schedule object is dropped without starting.
+  series(async () => { n += 1; });
+  await new Promise((r) => setTimeout(r, 10));
+  assert.equal(n, 0);
 });
 
 test('tasks returning streams complete when the stream ends', async () => {
@@ -74,7 +132,7 @@ test('series: nested arrays, functions, promises, streams and invalid args', asy
   // A bare readable passed directly is drained to completion.
   await series(Readable.from([1, 2, 3]));
 
-  await assert.rejects(series(42), /Invalid task argument/);
+  await assert.rejects(Promise.resolve(series(42)), /Invalid task argument/);
 });
 
 test('parallel: named tasks, nested arrays, promises and invalid args', async () => {
@@ -86,8 +144,8 @@ test('parallel: named tasks, nested arrays, promises and invalid args', async ()
   await parallel(Readable.from([1, 2, 3]));
 
   task('p-bad', async () => { throw new Error('parallel boom'); });
-  await assert.rejects(parallel(['p-bad']), /parallel boom/);
-  await assert.rejects(parallel(42), /Invalid task argument/);
+  await assert.rejects(Promise.resolve(parallel(['p-bad'])), /parallel boom/);
+  await assert.rejects(Promise.resolve(parallel(42)), /Invalid task argument/);
 });
 
 test('run() accepts a name or function and rejects other types', async () => {

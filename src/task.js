@@ -3,7 +3,9 @@
  * 
  * A "task" is a function (or an array of tasks). It may be sync, async, or
  * stream-returning. series() runs tasks sequentially; parallel() runs them
- * concurrently. Both return Promises for modern usage.
+ * concurrently. Both return LAZY schedules: awaitable objects that start only
+ * when first awaited, so composed calls can be nested safely as items without
+ * any extra wrapping.
  * 
  * Copyright (c) 2026 Alex Grant (@localnerve), LocalNerve LLC
  * Licensed under the MIT license.
@@ -139,33 +141,72 @@ function isWritableSide(s) {
 }
 
 /**
- * Run the given tasks sequentially. Resolves with an array of results in order,
- * or rejects on the first error. Accepts task names, functions, arrays, Promises,
+ * A lazily-started task schedule: the thenable returned by series()/parallel().
+ * Nothing runs until it is first awaited (or its `.then` is called); afterwards
+ * every await observes the same single execution and result.
+ *
+ * @template T
+ * @typedef {object} LazySchedule
+ * @property {(onfulfilled?: (value: T) => any, onrejected?: (reason: any) => any) => Promise<any>} then
+ */
+
+/**
+ * Wrap an async runner in a lazily-started schedule. The returned object is a
+ * minimal thenable: `await` treats it exactly like a Promise (the native
+ * await protocol calls `.then`), and the work starts on first observation —
+ * not when series()/parallel() was called. This is what makes composed
+ * schedules safe as items: `series(clean, parallel(a, b, c))` does NOT start
+ * `a`/`b`/`c` while evaluating the outer arguments.
+ *
+ * @template T
+ * @param {() => Promise<T>} runner Runs the schedule; may throw synchronously
+ *   (surfaced as a rejection, never as a throw).
+ * @returns {LazySchedule<T>} The lazy schedule.
+ */
+function makeSchedule(runner) {
+  /** @type {Promise<T>|null} */
+  let started = null;
+  const start = () => (started ??= Promise.resolve().then(runner));
+  return {
+    then(onfulfilled, onrejected) {
+      return start().then(onfulfilled, onrejected);
+    },
+  };
+}
+
+/**
+ * Build a schedule that runs the given tasks sequentially. Resolves with an
+ * array of results in order, or rejects on the first error. Accepts task names,
+ * functions, arrays, Promises (awaited), other schedules (started when reached),
  * and streams in any mix (nested arrays are flattened).
  *
+ * The schedule is LAZY: nothing runs until it is awaited (or `.then`'d). Awaiting
+ * the same schedule twice never re-runs its tasks.
+ *
  * @param {...TaskItem} args The tasks to run, one after another.
- * @returns {Promise<any[]>} An array of per-task results, in input order.
- * @throws {TypeError} If an item is not a recognized task type.
+ * @returns {LazySchedule<any[]>} The lazy schedule; await it to run.
  */
-export async function series(...args) {
-  const list = args.flat(Infinity);
-  const results = [];
-  for (const item of list) {
-    if (typeof item === 'string') {
-      results.push(await runTask(getTask(item)));
-    } else if (typeof item === 'function') {
-      results.push(await runTask(item));
-    } else if (isStream(item)) {
-      await finishStream(
-        /** @type {import('node:stream').Stream} */ (item),
-      );
-    } else if (item && typeof /** @type {any} */ (item).then === 'function') {
-      results.push(await item);
-    } else if (item != null) {
-      throw new TypeError(`Invalid task argument: ${typeof item}`);
+export function series(...args) {
+  return makeSchedule(async () => {
+    const list = /** @type {TaskItem[]} */ (args.flat(Infinity));
+    const results = [];
+    for (const item of list) {
+      if (typeof item === 'string') {
+        results.push(await runTask(getTask(item)));
+      } else if (typeof item === 'function') {
+        results.push(await runTask(item));
+      } else if (isStream(item)) {
+        await finishStream(
+          /** @type {import('node:stream').Stream} */ (item),
+        );
+      } else if (item && typeof /** @type {any} */ (item).then === 'function') {
+        results.push(await item);
+      } else if (item != null) {
+        throw new TypeError(`Invalid task argument: ${typeof item}`);
+      }
     }
-  }
-  return results;
+    return results;
+  });
 }
 
 /**
@@ -209,30 +250,38 @@ function isThunk(t) {
 }
 
 /**
- * Run the given tasks concurrently. Resolves with an array of results (in input
- * order) when all succeed, or rejects on the first error. Accepts task names,
- * functions, arrays, Promises, and streams in any mix (nested arrays flattened).
+ * Build a schedule that runs the given tasks concurrently. Resolves with an
+ * array of results (in input order) when all succeed, or rejects on the first
+ * error. Accepts task names, functions, arrays, Promises (awaited), other
+ * schedules (started when reached), and streams in any mix (nested arrays
+ * flattened).
+ *
+ * The schedule is LAZY: nothing runs until it is awaited (or `.then`'d). This
+ * is what makes `series(clean, parallel(a, b, c), revision)` safe without any
+ * extra wrapping — the parallel schedule only starts when series reaches it.
+ * Awaiting the same schedule twice never re-runs its tasks.
  *
  * @param {...TaskItem} args The tasks to run at the same time.
- * @returns {Promise<any[]>} An array of per-task results, in input order.
- * @throws {TypeError} If an item is not a recognized task type.
+ * @returns {LazySchedule<any[]>} The lazy schedule; await it to run.
  */
-export async function parallel(...args) {
-  /** @type {TaskItem[]} */
-  const list = args.flat(Infinity);
-  const thunks = list.map(toThunk);
+export function parallel(...args) {
+  return makeSchedule(async () => {
+    /** @type {TaskItem[]} */
+    const list = args.flat(Infinity);
+    const thunks = list.map(toThunk);
 
-  const settled = await Promise.allSettled(thunks.filter(isThunk).map((t) => t()));
-  for (const s of settled) {
-    if (s.status === 'rejected') throw /** @type {any} */ (s.reason);
-  }
+    const settled = await Promise.allSettled(thunks.filter(isThunk).map((t) => t()));
+    for (const s of settled) {
+      if (s.status === 'rejected') throw /** @type {any} */ (s.reason);
+    }
 
-  /** @type {unknown[]} */
-  const results = [];
-  for (const s of settled) {
-    if (s.status === 'fulfilled') results.push(s.value);
-  }
-  return results;
+    /** @type {unknown[]} */
+    const results = [];
+    for (const s of settled) {
+      if (s.status === 'fulfilled') results.push(s.value);
+    }
+    return results;
+  });
 }
 
 /**

@@ -127,5 +127,6 @@ export default createBuild(settings, siteData);   // zero-arg async build fn
 
 The factory registers nothing globally and closes only over `settings` and
 `siteData`, so many builds can coexist in one process — the shape a standalone
-multi-site builder extracts and reuses. Note its critical composition detail in
-[Common pitfalls](./tasks.md#common-pitfalls): the parallel stage is wrapped in an arrow thunk.
+multi-site builder extracts and reuses. Its composition relies on schedules
+being [lazy](./tasks.md#schedules-are-lazy): the bare `parallel(...)` stage is
+passed as a series item and starts only after `clean` finishes.
