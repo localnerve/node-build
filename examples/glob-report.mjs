@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // glob-report — list the files a glob pattern would match, without building.
 //
-// Usage: node examples/glob-report.mjs 'examples/src/**/*.{html,css}'
+// Usage: node examples/glob-report.mjs 'examples/basic/src/**/*.{html,css}'
 //
 // Demonstrates the raw globFiles()/deriveBase() exports (see docs/glob.md).
 //
@@ -11,7 +11,7 @@ import { globFiles, deriveBase } from 'node-build';
 import path from 'node:path';
 import process from 'node:process';
 
-const pattern = process.argv[2] ?? 'examples/src/**/*';
+const pattern = process.argv[2] ?? 'examples/basic/src/**/*';
 const cwd = process.cwd();
 const base = deriveBase(pattern, cwd);
 

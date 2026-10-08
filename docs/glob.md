@@ -95,7 +95,7 @@ import { globFiles, deriveBase } from 'node-build';
 import path from 'node:path';
 import process from 'node:process';
 
-const pattern = process.argv[2] ?? 'examples/src/**/*';
+const pattern = process.argv[2] ?? 'examples/basic/src/**/*';
 const cwd = process.cwd();
 const base = deriveBase(pattern, cwd);
 
@@ -104,7 +104,7 @@ for (const file of await globFiles(pattern, { cwd })) {
 }
 ```
 
-Run it: `node examples/glob-report.mjs 'examples/src/**/*.{html,css}'`.
+Run it: `node examples/glob-report.mjs 'examples/basic/src/**/*.{html,css}'`.
 
 Next: [Gulp plugin interop](./gulp-plugins.md) — how to reuse the huge existing
 ecosystem of Gulp plugins with node-build.

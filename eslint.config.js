@@ -15,7 +15,7 @@ export default [{
   name: 'global',
   ignores: [
     'coverage/**',
-    'examples/dist/**',
+    'examples/basic/dist/**',
     'examples/webapp/dist/**',
     'node_modules/**'
   ]

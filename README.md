@@ -61,8 +61,8 @@ task('hello', async () => console.log('hi'));
 await series('hello');
 ```
 
-A complete, runnable build lives in [`examples/build.mjs`](./examples/build.mjs) with inputs in
-[`examples/src/`](./examples/) — try `npm run build:example` from this repository.
+A complete, runnable build lives in [`examples/basic/build.mjs`](./examples/basic/build.mjs) with inputs in
+[`examples/basic/src/`](./examples/basic/src/) — try `npm run build:example` from this repository.
 
 ## Documentation
 

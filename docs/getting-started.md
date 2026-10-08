@@ -109,6 +109,6 @@ full API.
 | Use your existing Gulp plugins        | [Gulp plugin interop](./gulp-plugins.md) |
 | Drive builds from the command line    | [CLI](./cli.md)                        |
 
-A complete, runnable build lives in [`../examples/build.mjs`](../examples/build.mjs) with inputs
-in [`examples/src/`](../examples/src/) — try `npm run build:example` from the
+A complete, runnable build lives in [`../examples/basic/build.mjs`](../examples/basic/build.mjs) with inputs
+in [`examples/basic/src/`](../examples/basic/src/) — try `npm run build:example` from the
 node-build repository root.

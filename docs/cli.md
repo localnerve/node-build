@@ -40,7 +40,7 @@ The CLI imports your build file so its `task(...)` registrations run, then:
 
 1. If your file **exports a default function**, that function is called with the
    requested task name — giving you full control over composition. This is the
-   most flexible pattern (used by [`../examples/build.mjs`](../examples/build.mjs)):
+   most flexible pattern (used by [`../examples/basic/build.mjs`](../examples/basic/build.mjs)):
 
    ```js
    // build.mjs
@@ -192,6 +192,6 @@ node ./bin/nbs --list
 node ./bin/nbs --help
 ```
 
-The repository's [`examples/build.mjs`](../examples/build.mjs) is a complete
+The repository's [`examples/basic/build.mjs`](../examples/basic/build.mjs) is a complete
 working example: run `npm run build:example` from the node-build root to watch
-it copy and transform the files in `examples/src/` into `examples/dist/`.
+it copy and transform the files in `examples/basic/src/` into `examples/basic/dist/`.

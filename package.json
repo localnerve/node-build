@@ -44,7 +44,7 @@
     }
   },
   "scripts": {
-    "build:example": "node ./bin/nbs --config ./examples/build.mjs",
+    "build:example": "node ./bin/nbs --config ./examples/basic/build.mjs",
     "lint": "eslint .",
     "pretest": "node -e \"const fs=require('fs'); fs.rmSync('coverage', {recursive:true, force:true}); fs.mkdirSync('coverage')\"",
     "test": "node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage/lcov.info",
