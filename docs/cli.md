@@ -8,7 +8,7 @@ receive **your own** command-line arguments inside a task.
 ## Usage
 
 ```sh
-node /path/to/node-build/bin/node-build.mjs [taskName] [--config <file>]
+node /path/to/node-build/bin/nbs [taskName] [--config <file>] [--watch] [--list]
 ```
 
 | Argument            | Meaning                                                        |
@@ -16,10 +16,11 @@ node /path/to/node-build/bin/node-build.mjs [taskName] [--config <file>]
 | `taskName`          | Run this one registered task (positional, optional).           |
 | `--config`, `-c`    | Explicit path to your build module.                            |
 | `--watch`           | Build, then re-run on asset changes (see [Watching](#watching)). |
+| `--list`, `-l`      | Print the names of all registered tasks and exit — runs nothing. |
 | `--help`, `-h`      | Print usage and exit.                                          |
 
-If you publish the package or add it to your `package.json` `bin`, you can just
-type `node-build` instead of the full path.
+The package ships a `bin` entry, so once it is installed (or linked) in your
+project you can invoke it as `nbs` instead of the full path.
 
 ## How it finds your build file
 
@@ -39,7 +40,7 @@ The CLI imports your build file so its `task(...)` registrations run, then:
 
 1. If your file **exports a default function**, that function is called with the
    requested task name — giving you full control over composition. This is the
-   most flexible pattern (used by [`../build.mjs`](../build.mjs)):
+   most flexible pattern (used by [`../examples/build.mjs`](../examples/build.mjs)):
 
    ```js
    // build.mjs
@@ -59,12 +60,30 @@ The CLI imports your build file so its `task(...)` registrations run, then:
 On success it prints `✓ build complete (<file>)`; on failure it prints the error
 and exits with a non-zero code — exactly what CI needs.
 
+## Listing tasks
+
+`--list` (or `-l`) imports your build file so its `task(...)` registrations run,
+then prints every registered task name — one per line, in registration order —
+and exits **without running anything**:
+
+```sh
+$ node ./bin/nbs --list
+html
+css
+manifest
+```
+
+This is the same registry behind the exported [`listTasks()`](./tasks.md), so
+what you see here is exactly what the CLI (and your build file) can run. If no
+tasks are registered it prints `No tasks registered.` and still exits 0.
+
 ## Receiving your own CLI arguments
 
-The CLI only understands its *own* flags (`--config`, `--help`) and the task
-name. **Any other flag is left alone** — it never consumes unknown `--options`.
-That means your build file can read arbitrary arguments straight from
-`process.argv`, which is how you add feature-specific switches to a task:
+The CLI only understands its *own* flags (`--config`, `--watch`, `--list`,
+`--help`) and the task name. **Any other flag is left alone** — it never
+consumes unknown `--options`. That means your build file can read arbitrary
+arguments straight from `process.argv`, which is how you add feature-specific
+switches to a task:
 
 ```sh
 node-build manifest --minify --target staging
@@ -115,7 +134,7 @@ re-runs the selected task (debounced) whenever a watched file is added,
 removed, or edited. This is the zero-dependency stand-in for `gulp-watch`.
 
 ```sh
-node ./bin/node-build.mjs [taskName] --watch
+node ./bin/nbs [taskName] --watch
 ```
 
 To tell node-build *what* to watch, your build file's **default export**
@@ -142,7 +161,7 @@ Press `Ctrl+C` to stop; the watcher is closed cleanly.
   debounced, so a burst of saves becomes one re-run.
 - It watches **files read by your tasks** (your assets). If you only need to
   reload the *build file itself* when you edit it, use Node's built-in
-  `node --watch ./bin/node-build.mjs …` instead — that re-runs on **import-graph**
+  `node --watch ./bin/nbs …` instead — that re-runs on **import-graph**
   changes. node-build deliberately does not wrap `--watch`, because a build file
   that merely *reads* assets inside a task never registers those files in the
   module graph, so `node --watch` would not fire for them.
@@ -155,21 +174,24 @@ callbacks, explicit `{ close() }`).
 
 ```sh
 # Run the default task (default export function, or seriesDefault)
-node ./bin/node-build.mjs
+node ./bin/nbs
 
 # Run one specific registered task
-node ./bin/node-build.mjs html
+node ./bin/nbs html
 
 # Point at an explicit build file
-node ./bin/node-build.mjs --config ./scripts/build.mjs css
+node ./bin/nbs --config ./scripts/build.mjs css
 
 # Pass your own flags straight through to the build module
-node ./bin/node-build.mjs manifest --minify --target staging
+node ./bin/nbs manifest --minify --target staging
+
+# List registered tasks (runs nothing)
+node ./bin/nbs --list
 
 # See help
-node ./bin/node-build.mjs --help
+node ./bin/nbs --help
 ```
 
-The repository's [`build.mjs`](../build.mjs) is a complete working example: run
-`npm run build:example` from the node-build root to watch it copy and transform
-the files in `examples/src/` into `examples/dist/`.
+The repository's [`examples/build.mjs`](../examples/build.mjs) is a complete
+working example: run `npm run build:example` from the node-build root to watch
+it copy and transform the files in `examples/src/` into `examples/dist/`.

@@ -2,7 +2,8 @@
  * node-build example build file.
  * 
  * Demonstrates native transform tasks, async non-stream tasks, and
- * series + parallel composition. Run with:  node ./bin/node-build.mjs
+ * series + parallel composition. Run from the repository root with:
+ *  node ./bin/nbs --config ./examples/build.mjs
  * 
  * Copyright (c) 2026 Alex Grant (@localnerve), LocalNerve LLC
  * Licensed under the MIT license.

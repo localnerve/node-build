@@ -19,17 +19,25 @@ const BUILD_FILE_CANDIDATES = ['build.mjs', 'build.js', 'gulpfile.mjs', 'gulpfil
 /**
  * Parse CLI arguments.
  *
+ * The task name is the first non-dash token — but only while no unknown flag
+ * has appeared yet: once the user's own flags start (e.g. `--minify`), any
+ * following non-dash tokens belong to those flags (their values) and are left
+ * alone for the build module, per the pass-through contract.
+ *
  * @param {string[]} argv Process argument list (without node + script path).
- * @returns {{ task: string|null, config: string|null, help: boolean, watch: boolean }} The parsed CLI options.
+ * @returns {{ task: string|null, config: string|null, help: boolean, watch: boolean, list: boolean }} The parsed CLI options.
  */
 function parseArgs(argv) {
-  const args = { task: null, config: null, help: false, watch: false };
+  const args = { task: null, config: null, help: false, watch: false, list: false };
+  let seenUnknownFlag = false;
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--config' || a === '-c') args.config = argv[++i];
     else if (a === '--help' || a === '-h') args.help = true;
     else if (a === '--watch') args.watch = true;
-    else if (!a.startsWith('-')) args.task = a;
+    else if (a === '--list' || a === '-l') args.list = true;
+    else if (a.startsWith('-')) seenUnknownFlag = true;
+    else if (!seenUnknownFlag) args.task = a;
   }
   return args;
 }
@@ -38,11 +46,12 @@ function printHelp() {
   console.log(`node-build — no-dependency streaming build runner
 
 Usage:
-  node-build [taskName] [--config <file>] [--watch]
+  node-build [taskName] [--config <file>] [--watch] [--list]
 
 Options:
   --config, -c   Path to the build module (default: ./build.mjs or ./gulpfile.mjs)
   --watch        Build, then re-run on asset changes (see the build file's default export for its globs)
+  --list, -l     Print the names of all registered tasks and exit (runs nothing)
   --help, -h     Show this help
 
 The build module exports nothing special; it calls task()/series()/parallel() from
@@ -120,6 +129,17 @@ async function main() {
 
   // Import the build module so its task registrations run.
   const mod = await import(pathToFileURL(buildFile).href);
+
+  if (args.list) {
+    const { listTasks } = await import(new URL('../src/index.js', import.meta.url).href);
+    const names = listTasks();
+    if (names.length === 0) {
+      console.log('No tasks registered.');
+    } else {
+      for (const name of names) console.log(name);
+    }
+    return;
+  }
 
   if (args.watch) {
     await watchMode(args, mod);

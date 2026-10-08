@@ -74,9 +74,9 @@ Create a `build.mjs` in your project root (the [CLI](./cli.md) auto-detects it)
 containing the snippet above, then run:
 
 ```sh
-node /path/to/node-build/bin/node-build.mjs          # runs the default task
-node /path/to/node-build/bin/node-build.mjs html     # runs a specific task
-node /path/to/node-build/bin/node-build.mjs --help   # show usage
+node /path/to/node-build/bin/nbs          # runs the default task
+node /path/to/node-build/bin/nbs html     # runs a specific task
+node /path/to/node-build/bin/nbs --help   # show usage
 ```
 
 You should see `✓ build complete (build.mjs)` and a `dist/` folder with your
@@ -109,6 +109,6 @@ full API.
 | Use your existing Gulp plugins        | [Gulp plugin interop](./gulp-plugins.md) |
 | Drive builds from the command line    | [CLI](./cli.md)                        |
 
-A complete, runnable build lives in [`../build.mjs`](../build.mjs) with inputs
+A complete, runnable build lives in [`../examples/build.mjs`](../examples/build.mjs) with inputs
 in [`examples/src/`](../examples/src/) — try `npm run build:example` from the
 node-build repository root.
