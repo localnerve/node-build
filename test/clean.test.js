@@ -58,3 +58,90 @@ test('clean() honors negation and ignores missing targets', async () => {
     await fsp.rm(tmp, { recursive: true, force: true });
   }
 });
+
+test('clean() removes literal file and directory paths mixed with globs, sorted and deduped', async () => {
+  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'node-build-clean-'));
+  try {
+    const mix = path.join(tmp, 'mix');
+    await fsp.mkdir(path.join(mix, 'nested'), { recursive: true });
+    await fsp.writeFile(path.join(mix, 'a.txt'), 'x');
+    await fsp.writeFile(path.join(mix, 'nested', 'b.css'), 'y');
+    await fsp.writeFile(path.join(tmp, 'plain.txt'), 'z');
+
+    // Three kinds of input at once: a bare directory (literal branch — globs
+    // match no files for it), a literal file name (a plain glob match), and a
+    // glob covering the dir's contents (overlaps the dir target).
+    const removed = await clean(['mix', 'plain.txt', 'mix/**/*'], { cwd: tmp });
+    assert.deepEqual(removed, [
+      mix,
+      path.join(mix, 'a.txt'),
+      path.join(mix, 'nested', 'b.css'),
+      path.join(tmp, 'plain.txt'),
+    ]);
+    await assert.rejects(fsp.stat(mix));
+    await assert.rejects(fsp.stat(path.join(tmp, 'plain.txt')));
+  } finally {
+    await fsp.rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('clean() ignores missing literal paths (file or directory)', async () => {
+  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'node-build-clean-'));
+  try {
+    // Neither target exists and neither is a glob: the stat catch swallows both.
+    const removed = await clean(['no-such-dir', 'no-such-file.txt'], { cwd: tmp });
+    assert.deepEqual(removed, []);
+  } finally {
+    await fsp.rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('clean() accepts absolute literal paths and falls back to process.cwd()', async () => {
+  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'node-build-clean-'));
+  try {
+    const outDir = path.join(tmp, 'adist');
+    await fsp.mkdir(outDir);
+    await fsp.writeFile(path.join(outDir, 'f.txt'), 'x');
+    await fsp.writeFile(path.join(tmp, 'def.txt'), 'y');
+
+    // Absolute literal path: resolved directly, no opts.cwd needed.
+    const removed = await clean(outDir);
+    assert.deepEqual(removed, [outDir]);
+
+    // Relative literal with no opts at all: resolves against process.cwd().
+    // (On macOS, chdir() makes process.cwd() report the physical /private/var
+    // path rather than the /var symlink, so assert on identity, not spelling.)
+    const original = process.cwd();
+    try {
+      process.chdir(tmp);
+      const removed2 = await clean('def.txt');
+      assert.equal(removed2.length, 1);
+      assert.ok(path.isAbsolute(removed2[0]));
+      assert.equal(path.basename(removed2[0]), 'def.txt');
+      await assert.rejects(fsp.stat(path.join(tmp, 'def.txt'))); // it is gone
+    } finally {
+      process.chdir(original);
+    }
+  } finally {
+    await fsp.rm(tmp, { recursive: true, force: true });
+  }
+});
+
+test('clean() wraps removal failures in a descriptive error', async (t) => {
+  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'node-build-clean-'));
+  try {
+    const victim = path.join(tmp, 'victim.txt');
+    await fsp.writeFile(victim, 'x');
+
+    const cause = Object.assign(new Error('simulated busy'), { code: 'EBUSY' });
+    t.mock.method(fsp, 'rm', () => Promise.reject(cause));
+    await assert.rejects(clean(victim, { cwd: tmp }), (err) => {
+      assert.match(err.message, /node-build: clean\(\) failed to remove .*victim\.txt/);
+      assert.equal(err.cause, cause);
+      return true;
+    });
+    t.mock.restoreAll(); // let the cleanup below use the real fs again
+  } finally {
+    await fsp.rm(tmp, { recursive: true, force: true });
+  }
+});

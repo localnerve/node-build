@@ -128,6 +128,7 @@ export async function watch(globs, taskName, opts = {}) {
       pending = true; // doRun's finally re-arms with the debounce window
       return;
     }
+    if (timer) clearTimeout(timer); // reset, don't orphan: a stale tick must not outlive close()
     timer = setTimeout(async () => {
       if (closed) return;
       let current;
