@@ -45,27 +45,39 @@ export declare function getTask(name: string): TaskFn;
  * @returns {string[]} The registered task names.
  */
 export declare function listTasks(): string[];
+export type LazySchedule<T> = {
+    then: (onfulfilled?: (value: T) => any, onrejected?: (reason: any) => any) => Promise<any>;
+};
 /**
- * Run the given tasks sequentially. Resolves with an array of results in order,
- * or rejects on the first error. Accepts task names, functions, arrays, Promises,
+ * Build a schedule that runs the given tasks sequentially. Resolves with an
+ * array of results in order, or rejects on the first error. Accepts task names,
+ * functions, arrays, Promises (awaited), other schedules (started when reached),
  * and streams in any mix (nested arrays are flattened).
  *
+ * The schedule is LAZY: nothing runs until it is awaited (or `.then`'d). Awaiting
+ * the same schedule twice never re-runs its tasks.
+ *
  * @param {...TaskItem} args The tasks to run, one after another.
- * @returns {Promise<any[]>} An array of per-task results, in input order.
- * @throws {TypeError} If an item is not a recognized task type.
+ * @returns {LazySchedule<any[]>} The lazy schedule; await it to run.
  */
-export declare function series(...args: TaskItem[]): Promise<any[]>;
+export declare function series(...args: TaskItem[]): LazySchedule<any[]>;
 export type ParallelThunk = () => Promise<unknown>;
 /**
- * Run the given tasks concurrently. Resolves with an array of results (in input
- * order) when all succeed, or rejects on the first error. Accepts task names,
- * functions, arrays, Promises, and streams in any mix (nested arrays flattened).
+ * Build a schedule that runs the given tasks concurrently. Resolves with an
+ * array of results (in input order) when all succeed, or rejects on the first
+ * error. Accepts task names, functions, arrays, Promises (awaited), other
+ * schedules (started when reached), and streams in any mix (nested arrays
+ * flattened).
+ *
+ * The schedule is LAZY: nothing runs until it is awaited (or `.then`'d). This
+ * is what makes `series(clean, parallel(a, b, c), revision)` safe without any
+ * extra wrapping — the parallel schedule only starts when series reaches it.
+ * Awaiting the same schedule twice never re-runs its tasks.
  *
  * @param {...TaskItem} args The tasks to run at the same time.
- * @returns {Promise<any[]>} An array of per-task results, in input order.
- * @throws {TypeError} If an item is not a recognized task type.
+ * @returns {LazySchedule<any[]>} The lazy schedule; await it to run.
  */
-export declare function parallel(...args: TaskItem[]): Promise<any[]>;
+export declare function parallel(...args: TaskItem[]): LazySchedule<any[]>;
 /**
  * Convenience: run a single named task or function to completion.
  *

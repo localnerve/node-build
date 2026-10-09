@@ -85,17 +85,31 @@ console.log(base);  // <cwd>/src
 
 ## A complete example: report what a build would touch
 
-This small script uses the raw helpers to list files without transforming them —
-handy for debugging globs before wiring up a full pipeline:
+Listing files without transforming them is handy for debugging globs before
+wiring up a full pipeline — and you don't need to write the script yourself.
+The CLI ships it as a first-class tool (see [CLI — Glob report](./cli.md#glob-report)):
 
-The repository ships a ready-made script — [`examples/glob-report.mjs`](../examples/glob-report.mjs):
+```sh
+$ node ./bin/nbs --glob 'examples/basic/src/**/*.{html,css}'
+pattern: examples/basic/src/**/*.{html,css}
+base:    examples/basic/src
+---
+index.html
+style.css
+```
+
+Pass `--glob` multiple times for several patterns, or add `--json` for
+machine-readable output. It works in any directory — no build file needed.
+
+If you want to do it yourself (e.g. from a script), the raw helpers are only a
+few lines apart:
 
 ```js
 import { globFiles, deriveBase } from 'node-build';
 import path from 'node:path';
 import process from 'node:process';
 
-const pattern = process.argv[2] ?? 'examples/src/**/*';
+const pattern = 'examples/basic/src/**/*';
 const cwd = process.cwd();
 const base = deriveBase(pattern, cwd);
 
@@ -103,8 +117,6 @@ for (const file of await globFiles(pattern, { cwd })) {
   console.log(path.relative(base, file));
 }
 ```
-
-Run it: `node examples/glob-report.mjs 'examples/src/**/*.{html,css}'`.
 
 Next: [Gulp plugin interop](./gulp-plugins.md) — how to reuse the huge existing
 ecosystem of Gulp plugins with node-build.

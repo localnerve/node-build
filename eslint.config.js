@@ -15,7 +15,8 @@ export default [{
   name: 'global',
   ignores: [
     'coverage/**',
-    'examples/dist/**',
+    'examples/basic/dist/**',
+    'examples/webapp/dist/**',
     'node_modules/**'
   ]
 }, {
@@ -63,5 +64,27 @@ export default [{
     }],
     quotes: [2, 'single'],
     'dot-notation': [2, {allowKeywords: true}]
+  }
+}, {
+  // The webapp example's client source is browser code (document et al).
+  name: 'webapp_client',
+  files: ['examples/webapp/src/client/**/*.js'],
+  languageOptions: {
+    globals: {
+      ...globals.browser
+    }
+  }
+}, {
+  name: 'webapp_builder',
+  files: ['examples/webapp/builder/*.js'],
+  languageOptions: { 
+    globals: {
+      ...globals.node 
+    }
+  },
+  rules: {
+    ...js.configs.recommended.rules,
+    ...nodeRules,
+    'n/no-missing-import': 'off'
   }
 }];

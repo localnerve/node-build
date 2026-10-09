@@ -66,7 +66,8 @@ export async function watch(globs, taskName, opts = {}) {
   const debounceMs = Math.max(0, opts.debounceMs ?? 100);
 
   // Imported lazily: watch.js stays usable standalone and the module graph
-  // stays acyclic (task.js does not import watch.js).
+  // stays acyclic (task.js does not import watch.js). series()/runDefault()
+  // return lazy schedules, so calling them here starts nothing early.
   const { series, getTask, runDefault } = await import('./task.js');
   const runTask = typeof taskName === 'string' ? () => series(getTask(taskName)) : () => runDefault();
 
@@ -127,6 +128,7 @@ export async function watch(globs, taskName, opts = {}) {
       pending = true; // doRun's finally re-arms with the debounce window
       return;
     }
+    if (timer) clearTimeout(timer); // reset, don't orphan: a stale tick must not outlive close()
     timer = setTimeout(async () => {
       if (closed) return;
       let current;
