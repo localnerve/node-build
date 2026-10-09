@@ -74,4 +74,17 @@ export default [{
       ...globals.browser
     }
   }
+}, {
+  name: 'webapp_builder',
+  files: ['examples/webapp/builder/*.js'],
+  languageOptions: { 
+    globals: {
+      ...globals.node 
+    }
+  },
+  rules: {
+    ...js.configs.recommended.rules,
+    ...nodeRules,
+    'n/no-missing-import': 'off'
+  }
 }];
