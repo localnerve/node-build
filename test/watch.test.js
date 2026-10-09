@@ -1,5 +1,5 @@
 /**
- * node-build — tests for src/watch.js.
+ * node-build-stream — tests for src/watch.js.
  *
  * Uses an isolated temp tree (the shared fixture is process-wide and other
  * suites mutate it). Watch timing is real fs.watch + timers, so assertions wait
@@ -31,7 +31,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 let tmp;
 
 test.before(async () => {
-  tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'node-build-watch-'));
+  tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'nbs-watch-'));
   await fsp.mkdir(path.join(tmp, 'src'), { recursive: true });
   await fsp.writeFile(path.join(tmp, 'src', 'a.txt'), 'alpha');
 });

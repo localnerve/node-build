@@ -19,7 +19,7 @@
  * Copyright (c) 2026 Alex Grant (@localnerve), LocalNerve LLC
  * Licensed under the MIT license.
  */
-import { series, parallel, clean } from 'node-build';
+import { series, parallel, clean } from 'node-build-stream';
 import { createStylesStage } from './styles.js';
 import { createScriptsStage } from './scripts.js';
 import { createAssetsStage } from './assets.js';
@@ -44,7 +44,7 @@ import { createRevisionStage } from './revision.js';
  * @returns {() => Promise<void>} The build function: runs prepare, then styles
  *   + scripts + assets in parallel, then revision. Accepts an optional task
  *   name argument (ignored — the full pipeline always runs), so it can be used
- *   directly as a build file's default export with the node-build CLI.
+ *   directly as a build file's default export with the nbs CLI.
  */
 export function createBuild (settings, siteData) {
   return async function build () {

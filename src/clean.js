@@ -1,5 +1,5 @@
 /**
- * node-build — clean / delete files and directories by glob pattern.
+ * node-build-stream — clean / delete files and directories by glob pattern.
  *
  * A dependency-free `gulp-clean` equivalent: resolve a set of glob patterns
  * (negation supported, same syntax as src()) and remove the matches from disk.
@@ -70,7 +70,7 @@ export async function clean(patterns, opts = {}) {
       removed.push(target);
     } catch (cause) {
       const err = /** @type {Error} */ (cause);
-      throw new Error(`node-build: clean() failed to remove ${target}: ${err.message}`, { cause });
+      throw new Error(`node-build-stream: clean() failed to remove ${target}: ${err.message}`, { cause });
     }
   }
   return removed;

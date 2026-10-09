@@ -1,5 +1,5 @@
 /**
- * node-build — command line argument parsing for build files.
+ * node-build-stream — command line argument parsing for build files.
  *
  * A small, dependency-free parser that turns `--name value` / `--flag` pairs into
  * a plain object so build files can branch on user-supplied switches without

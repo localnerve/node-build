@@ -1,5 +1,5 @@
 /**
- * node-build — stream tests (src/stream.js).
+ * node-build-stream — stream tests (src/stream.js).
  *
  * Covers src, dest, through (including the empty-glob warning and the output
  * guard), and the wrapFile/unwrapFile byte-stream bridge.

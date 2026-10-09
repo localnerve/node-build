@@ -1,5 +1,5 @@
 /**
- * node-build — task registry and scheduler.
+ * node-build-stream — task registry and scheduler.
  * 
  * A "task" is a function (or an array of tasks). It may be sync, async, or
  * stream-returning. series() runs tasks sequentially; parallel() runs them

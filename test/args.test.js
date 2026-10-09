@@ -1,5 +1,5 @@
 /**
- * node-build — parseArgs() tests (src/args.js).
+ * node-build-stream — parseArgs() tests (src/args.js).
  *
  * Copyright (c) 2026 Alex Grant (@localnerve), LocalNerve LLC
  * Licensed under the MIT license.

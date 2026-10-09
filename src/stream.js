@@ -1,5 +1,5 @@
 /**
- * node-build — streaming core.
+ * node-build-stream — streaming core.
  * 
  * src() yields File objects matching glob patterns; dest() writes them to disk;
  * through(fn) provides an object-mode Transform for native build steps. The
@@ -50,7 +50,7 @@ async function* fileGenerator(patterns, opts, cwd) {
   // otherwise produce a "successful" no-op stream that is hard to debug.
   const hasPositivePattern = patterns.some((p) => !String(p).startsWith('!'));
   if (!files.length && hasPositivePattern) {
-    console.warn(`node-build: src() matched no files for pattern(s): ${patterns.join(', ')}`);
+    console.warn(`node-build-stream: src() matched no files for pattern(s): ${patterns.join(', ')}`);
   }
   const base = opts.base ? path.resolve(cwd, opts.base) : deriveBase(patterns[0], cwd);
 
@@ -62,7 +62,7 @@ async function* fileGenerator(patterns, opts, cwd) {
         : await fs.promises.readFile(file);
     } catch (cause) {
       const err = /** @type {Error} */ (cause);
-      throw new Error(`node-build: failed to read ${file}: ${err.message}`, { cause });
+      throw new Error(`node-build-stream: failed to read ${file}: ${err.message}`, { cause });
     }
     const f = makeFile(opts.from ?? cwd);
     f.path = file;

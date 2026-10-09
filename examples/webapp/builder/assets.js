@@ -12,8 +12,8 @@
  *                                 site data via handlebars
  * 
  * Like scripts.js this stage returns a Promise, not a stream — the two shapes
- * node-build tasks can take, shown for contrast with styles.js. Both `sitemap`
- * and `handlebars` are recipe dependencies of this EXAMPLE, not of node-build.
+ * node-build-stream tasks can take, shown for contrast with styles.js. Both `sitemap`
+ * and `handlebars` are recipe dependencies of this EXAMPLE, not of node-build-stream.
  * 
  * Copyright (c) 2026 Alex Grant (@localnerve), LocalNerve LLC
  * Licensed under the MIT license.

@@ -1,6 +1,6 @@
 # Streams: src, dest & through
 
-This is the heart of node-build (and of Gulp). A build is a **pipeline**: files
+This is the heart of node-build-stream (and of Gulp). A build is a **pipeline**: files
 flow in from disk, pass through one or more transforms, and flow out to disk.
 Three functions do all the heavy lifting:
 
@@ -18,7 +18,7 @@ one object per matched file, each carrying its contents (see
 [The File object](./file.md) for the anatomy).
 
 ```js
-import { src } from 'node-build';
+import { src } from 'node-build-stream';
 
 const stream = src('src/**/*.css');   // matches every css under src/
 for await (const file of stream) {
@@ -39,14 +39,14 @@ braces `{a,b}`, and negation with a leading `!`. Pass an array for multiple
 patterns.
 
 > **Empty-match warning.** If a *positive* pattern matches no files, `src()`
-> prints a one-line warning to the console (e.g. `node-build: src() matched no
+> prints a one-line warning to the console (e.g. `node-build-stream: src() matched no
 > files for pattern(s): src/**/*.html`) so a typo'd path is visible instead of
 > silently producing an empty build. A negation-only pattern list does not warn.
 
 ### Why "base" matters
 
 Gulp plugins compute output paths from `file.relative` (the path *inside* the
-matched folder). node-build derives that base from the static part of your
+matched folder). node-build-stream derives that base from the static part of your
 pattern: `src/**/*.css` → base is `src/`, so a file's relative path is
 `app.css`. If you need exact control, pass `{ base: 'some/dir' }`.
 
@@ -58,23 +58,23 @@ handles Buffer contents, string contents, and even files whose contents are
 themselves streams (it pipes them through).
 
 ```js
-import { src, dest } from 'node-build';
+import { src, dest } from 'node-build-stream';
 
 src('src/**/*.{html,css}').pipe(dest('dist'));
 // dist/ now mirrors the folder layout under your matched base.
 ```
 
-After writing, node-build updates `file.path` to the final on-disk location, so
+After writing, node-build-stream updates `file.path` to the final on-disk location, so
 downstream transforms can see where a file landed.
 
 ## `clean(patterns, opts?)` — delete files and directories
 
-`clean()` is node-build's dependency-free `gulp-clean`. It resolves your patterns
+`clean()` is node-build-stream's dependency-free `gulp-clean`. It resolves your patterns
 and removes the matches from disk. Use it to wipe an output directory at the start
 of a build:
 
 ```js
-import { clean } from 'node-build';
+import { clean } from 'node-build-stream';
 
 await clean('dist');            // remove the whole dist/ folder (recursive)
 await clean(['dist/**', '!dist/keep.txt']);   // globs + negation, same syntax as src()
@@ -93,19 +93,19 @@ Directories are removed recursively. Non-existent targets are ignored, so
 the absolute paths actually removed (empty when nothing matched).
 
 ```js
-import { task, clean } from 'node-build';
+import { task, clean } from 'node-build-stream';
 task('clean', async () => { await clean('dist'); });   // run as a normal task
 ```
 
 <a id="watch"></a>
 ## `watch(globs, taskName?, opts?)` — re-run on file changes
 
-`watch()` is node-build's dependency-free `gulp-watch`. It runs your task once,
+`watch()` is node-build-stream's dependency-free `gulp-watch`. It runs your task once,
 then keeps watching the given globs and re-runs the task (debounced) whenever a
 matching file is added, removed, or edited.
 
 ```js
-import { watch } from 'node-build';
+import { watch } from 'node-build-stream';
 
 const handle = await watch('src/**', 'build', { debounceMs: 100 });
 // … later, when you're done (e.g. in a CLI signal handler):
@@ -129,7 +129,7 @@ watcher.
 
 Under the hood it uses one recursive `fs.watch`, so any number of globs costs a
 single native watcher. See [the CLI's Watching section](./cli.md#watching) for how
-this maps to `node-build --watch` and how it differs from Node's own `--watch`.
+this maps to `node-build-stream --watch` and how it differs from Node's own `--watch`.
 
 ## `through(fn)` — transform files in memory
 
@@ -153,7 +153,7 @@ for each File. What you do with the result decides what happens:
 Async functions are supported, so you can `await` real work per file:
 
 ```js
-import { src, dest, through } from 'node-build';
+import { src, dest, through } from 'node-build-stream';
 
 src('src/**/*.html')
   .pipe(through(async (file) => {
@@ -186,12 +186,12 @@ src('src/template.txt')
 
 ## Connecting the pieces: `pipeline()`
 
-node-build re-exports `pipeline` from `node:stream/promises`. Use it whenever
+node-build-stream re-exports `pipeline` from `node:stream/promises`. Use it whenever
 you want to **await** a whole chain (which is what your task functions should
 return) — it propagates errors and cleans up resources properly:
 
 ```js
-import { src, dest, through, pipeline } from 'node-build';
+import { src, dest, through, pipeline } from 'node-build-stream';
 
 const build = () => pipeline(
   src('src/**/*.css', { cwd }),
@@ -203,13 +203,13 @@ await build();   // resolves when every file is written; rejects on any error
 ```
 
 > Inside a `task()` you can simply `return src(...).pipe(transform).pipe(dest(...))`
-> — node-build detects the returned stream and awaits it for you. `pipeline()`
+> — node-build-stream detects the returned stream and awaits it for you. `pipeline()`
 > is what you use outside tasks, or when you want explicit error handling.
 
 ## The full picture in one task
 
 ```js
-import { task, src, dest, through } from 'node-build';
+import { task, src, dest, through } from 'node-build-stream';
 
 task('html', () =>
   src('src/**/*.html')                       // 1. read matching files

@@ -2,7 +2,7 @@
 
 `src()` (and the lower-level `globFiles()`) decide **which files** enter your
 pipeline using *glob patterns* — shell-style wildcards. This page explains the
-syntax node-build supports, how base directories are derived from them, and how
+syntax node-build-stream supports, how base directories are derived from them, and how
 to use the raw helpers directly.
 
 ## Pattern syntax
@@ -35,7 +35,7 @@ exactly like passing two patterns.
 
 Every File has a `base` and a `relative` (see [The File object](./file.md)).
 `dest()` writes to `<outdir>/<relative>`, so **`base` is what preserves your
-folder structure**. node-build derives `base` from the *static leading portion*
+folder structure**. node-build-stream derives `base` from the *static leading portion*
 of your pattern — the part before any wildcard appears:
 
 | Pattern              | Derived base            | So a matched file's `relative` is… |
@@ -62,7 +62,7 @@ resolve patterns):
 Returns sorted, de-duplicated **absolute** paths:
 
 ```js
-import { globFiles } from 'node-build';
+import { globFiles } from 'node-build-stream';
 
 const files = await globFiles('src/**/*.{js,ts}', { cwd: process.cwd() });
 console.log(files.length);  // how many source files you have
@@ -77,7 +77,7 @@ Computes just the base directory for a single pattern — useful when you build
 File objects yourself and want Gulp-compatible `relative` values:
 
 ```js
-import { deriveBase } from 'node-build';
+import { deriveBase } from 'node-build-stream';
 
 const base = deriveBase('src/**/*.css', process.cwd());
 console.log(base);  // <cwd>/src
@@ -90,7 +90,7 @@ wiring up a full pipeline — and you don't need to write the script yourself.
 The CLI ships it as a first-class tool (see [CLI — Glob report](./cli.md#glob-report)):
 
 ```sh
-$ node ./bin/nbs --glob 'examples/basic/src/**/*.{html,css}'
+$ node ./bin/nbs.mjs --glob 'examples/basic/src/**/*.{html,css}'
 pattern: examples/basic/src/**/*.{html,css}
 base:    examples/basic/src
 ---
@@ -105,7 +105,7 @@ If you want to do it yourself (e.g. from a script), the raw helpers are only a
 few lines apart:
 
 ```js
-import { globFiles, deriveBase } from 'node-build';
+import { globFiles, deriveBase } from 'node-build-stream';
 import path from 'node:path';
 import process from 'node:process';
 
@@ -119,4 +119,4 @@ for (const file of await globFiles(pattern, { cwd })) {
 ```
 
 Next: [Gulp plugin interop](./gulp-plugins.md) — how to reuse the huge existing
-ecosystem of Gulp plugins with node-build.
+ecosystem of Gulp plugins with node-build-stream.

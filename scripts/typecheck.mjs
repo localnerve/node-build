@@ -1,5 +1,5 @@
 /**
- * node-build — per-file typecheck helper.
+ * node-build-stream — per-file typecheck helper.
  *
  * tsgo (tsc@7) refuses to mix `-p` with file arguments on the command line, so
  * checking a single module requires a temporary tsconfig that pins `files`.

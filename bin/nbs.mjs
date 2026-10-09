@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * node-build CLI.
+ * node-build-stream CLI.
  * 
  * Loads a build module (default: ./build.mjs, then ./gulpfile.mjs for easy
  * migration), imports it so its task() registrations are recorded, then runs the
@@ -46,11 +46,11 @@ function parseArgs(argv) {
 }
 
 function printHelp() {
-  console.log(`node-build — no-dependency streaming build runner
+  console.log(`nbs — no-dependency streaming build runner
 
 Usage:
-  node-build [taskName] [--config <file>] [--watch] [--list]
-  node-build --glob <pattern>... [--json]
+  nbs [taskName] [--config <file>] [--watch] [--list]
+  nbs --glob <pattern>... [--json]
 
 Options:
   --config, -c   Path to the build module (default: ./build.mjs or ./gulpfile.mjs)
@@ -63,7 +63,7 @@ Options:
   --help, -h     Show this help
 
 The build module exports nothing special; it calls task()/series()/parallel() from
-'node-build' at import time. The CLI runs the named task, or the default task if
+'node-build-stream' at import time. The CLI runs the named task, or the default task if
 one was registered with seriesDefault(), otherwise all tasks in parallel.
 
 With --watch, the build file's default export may be an object { globs: [...] }
@@ -138,7 +138,7 @@ async function watchMode(args, mod) {
   const globs = hasGlobs ? /** @type {string[]} */ (d.globs) : null;
   if (!globs) {
     throw new Error(
-      '--watch: the build file must export { globs: [pattern, ...] } as its default export so node-build knows what to watch.'
+      '--watch: the build file must export { globs: [pattern, ...] } as its default export so node-build-stream knows what to watch.'
     );
   }
 

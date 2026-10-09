@@ -1,7 +1,7 @@
 /**
  * Revision stage — the pure-`through()` showcase (no gulp-rev).
  * 
- * Three streaming passes over dist/, all composed with node-build primitives:
+ * Three streaming passes over dist/, all composed with node-build-stream primitives:
  * 
  *   1. Fingerprint — every asset under dist/assets/** gets a SHA-256 content
  *      hash in its filename (`site.css` → `site-a1b2c3d4e5.css`). The transform
@@ -25,7 +25,7 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { Readable } from 'node:stream';
-import { src, dest, through, series, File } from 'node-build';
+import { src, dest, through, series, File } from 'node-build-stream';
 
 /** Fixed hash length used in fingerprinted filenames. */
 const HASH_LEN = 10;
@@ -116,10 +116,10 @@ export function createRevisionStage (settings) {
  *
  * @param {string} assetsDir Absolute path of dist/assets (manifest keys are relative to it).
  * @param {Manifest} manifest Accumulator for this run's original→fingerprinted map.
- * @returns {(file: import('node-build/file').File) => import('node-build/file').File|null} The through() callback.
+ * @returns {(file: import('node-build-stream/file').File) => import('node-build-stream/file').File|null} The through() callback.
  */
 function fingerprint (assetsDir, manifest) {
-  return async function fp (/** @type {import('node-build/file').File} */ file) {
+  return async function fp (/** @type {import('node-build-stream/file').File} */ file) {
     if (path.extname(file.path) === '.map' || path.basename(file.path) === 'manifest.json') {
       return file; // leave as-is; dest() rewrites it in place
     }
@@ -144,10 +144,10 @@ function fingerprint (assetsDir, manifest) {
  * @param {Record<string, string>} refs Site-rooted reference token → replacement token.
  * @param {string} assetsDir Absolute path of dist/assets (for relative manifest keys).
  * @param {Manifest} manifest The shared manifest map, updated when a file re-hashes.
- * @returns {(file: import('node-build/file').File) => import('node-build/file').File} The through() callback.
+ * @returns {(file: import('node-build-stream/file').File) => import('node-build-stream/file').File} The through() callback.
  */
 function rewriteAndRehash (refs, assetsDir, manifest) {
-  return async function rewriteCss (/** @type {import('node-build/file').File} */ file) {
+  return async function rewriteCss (/** @type {import('node-build-stream/file').File} */ file) {
     const original = /** @type {string} */ (file.contents);
     const rewritten = replaceAllTokens(original, refs);
     if (rewritten === original) return file; // no refs — name stays valid
@@ -173,10 +173,10 @@ function rewriteAndRehash (refs, assetsDir, manifest) {
  * fingerprinted forms.
  *
  * @param {Record<string, string>} refs Site-rooted reference token → replacement token.
- * @returns {(file: import('node-build/file').File) => import('node-build/file').File} The through() callback.
+ * @returns {(file: import('node-build-stream/file').File) => import('node-build-stream/file').File} The through() callback.
  */
 function rewriteRefs (refs) {
-  return function rewriteHtml (/** @type {import('node-build/file').File} */ file) {
+  return function rewriteHtml (/** @type {import('node-build-stream/file').File} */ file) {
     file.contents = replaceAllTokens(/** @type {string} */ (file.contents), refs);
     return file;
   };

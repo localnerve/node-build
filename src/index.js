@@ -1,5 +1,5 @@
 /**
- * node-build — a no-dependency, Node 24+ streaming build runner.
+ * node-build-stream — a no-dependency, Node 24+ streaming build runner.
  * 
  * Drop-in replacement for the core of gulp: define tasks with `task()`, run them
  * with `series()`/`parallel()`, and move files through object-mode streams built

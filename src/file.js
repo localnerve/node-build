@@ -1,9 +1,9 @@
 /**
- * node-build — Vinyl-compatible file shim.
+ * node-build-stream — Vinyl-compatible file shim.
  * 
  * A minimal, dependency-free file object that is duck-type compatible with the
  * subset of the Vinyl API that gulp plugins actually rely on. When a real `vinyl`
- * package is present in the consuming project, node-build transparently uses
+ * package is present in the consuming project, node-build-stream transparently uses
  * that instead (see vinyl.js) for maximum plugin compatibility.
  * 
  * Copyright (c) 2026 Alex Grant (@localnerve), LocalNerve LLC

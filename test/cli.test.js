@@ -1,5 +1,5 @@
 /**
- * Integration tests for bin/nbs (the CLI) — it is spawned as a child process
+ * Integration tests for bin/nbs.mjs (the CLI) — it is spawned as a child process
  * against throwaway build files, so the real entry point (arg parsing,
  * build-file discovery, task dispatch, watch mode, error handling) is
  * exercised end to end.
@@ -15,7 +15,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const BIN = fileURLToPath(new URL('../bin/nbs', import.meta.url));
+const BIN = fileURLToPath(new URL('../bin/nbs.mjs', import.meta.url));
 // The CLI resolves its registry via this same file URL, so importing it here
 // shares one task registry with the spawned process's own imports.
 const INDEX = new URL('../src/index.js', import.meta.url).href;
@@ -23,7 +23,7 @@ const INDEX = new URL('../src/index.js', import.meta.url).href;
 let root;
 
 before(async () => {
-  root = await fs.mkdtemp(path.join(os.tmpdir(), 'node-build-cli-'));
+  root = await fs.mkdtemp(path.join(os.tmpdir(), 'nbs-cli-'));
 });
 
 after(async () => {

@@ -1,19 +1,19 @@
 /**
- * node-build example build file.
+ * node-build-stream example build file.
  * 
  * Demonstrates native transform tasks, async non-stream tasks, and
  * series + parallel composition. Run from the repository root with:
- *  node ./bin/nbs --config ./examples/basic/build.mjs
+ *  node ./bin/nbs.mjs --config ./examples/basic/build.mjs
  * 
  * Copyright (c) 2026 Alex Grant (@localnerve), LocalNerve LLC
  * Licensed under the MIT license.
  */
-import { task, series, parallel, src, dest, through, parseArgs } from 'node-build';
+import { task, series, parallel, src, dest, through, parseArgs } from 'node-build-stream';
 import process from 'node:process';
 
 const thisDir = import.meta.dirname;
 
-// `node-build mytask --a 123 --b "my string" --c` -> { a: "123", b: "my string", c: true }
+// `nbs mytask --a 123 --b "my string" --c` -> { a: "123", b: "my string", c: true }
 const args = parseArgs(process.argv);
 const cwd = process.cwd();
 
@@ -52,7 +52,7 @@ function build (buildArgs = {}) {
   return parallel('html', 'css').then(() => series('manifest'));
 }
 
-// Declares what `node-build --watch` monitors for this build file. A function
+// Declares what `nbs --watch` monitors for this build file. A function
 // default export may carry a `globs` property (functions are objects), so the
 // same export works in both one-shot and watch modes.
 build.globs = [`${thisDir}/src/**`];

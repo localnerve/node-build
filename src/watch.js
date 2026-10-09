@@ -1,5 +1,5 @@
 /**
- * node-build — file watching with task re-runs.
+ * node-build-stream — file watching with task re-runs.
  *
  * watch() uses a single recursive `fs.watch` on the watched directory and, when
  * changes match the given glob patterns, re-runs a task (debounced). It is the

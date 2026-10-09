@@ -1,6 +1,6 @@
 # The File object
 
-Everything that flows through a node-build pipeline is a **File** — a small
+Everything that flows through a node-build-stream pipeline is a **File** — a small
 object representing one file on disk *plus* its contents. This page explains
 its shape, why it exists, and how to create your own.
 
@@ -16,7 +16,7 @@ object solves that: it pairs **identity** (where the file came from) with
 ## Anatomy
 
 ```js
-import { File } from 'node-build';
+import { File } from 'node-build-stream';
 
 const f = new File({
   cwd: process.cwd(),                 // used to resolve relative inputs
@@ -66,7 +66,7 @@ You rarely need to construct one by hand — `src()` does it for you. But in tes
 and advanced transforms you might:
 
 ```js
-import { File } from 'node-build';
+import { File } from 'node-build-stream';
 
 const f = new File({ path: '/tmp/out/readme.md', base: '/tmp/out' });
 f.contents = Buffer.from('# Hello\n');
@@ -81,7 +81,7 @@ current working directory), so you can write portable code.
 `clone()` is how one input becomes many outputs in a `through()` transform:
 
 ```js
-import { src, dest, through } from 'node-build';
+import { src, dest, through } from 'node-build-stream';
 
 src('src/template.txt')
   .pipe(through((file) => [
@@ -96,7 +96,7 @@ independent — mutating one does not affect the other.
 
 ## The shim vs real vinyl
 
-node-build ships a **zero-dependency** `File` implementation (this class). If
+node-build-stream ships a **zero-dependency** `File` implementation (this class). If
 your project already has the real `vinyl` package installed, node-build
 transparently uses *that* instead, so plugins that do `instanceof Vinyl` also
 work. You never have to choose — see [Gulp plugin interop](./gulp-plugins.md)

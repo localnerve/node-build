@@ -1,7 +1,7 @@
 {
   "name": "Aurora Webapp",
   "url": "https://example.com",
-  "description": "A reference webapp built with node-build.",
+  "description": "A reference webapp built with node-build-stream.",
   "pages": [
     { "path": "/", "title": "Home" },
     { "path": "/about.html", "title": "About" }

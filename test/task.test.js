@@ -1,5 +1,5 @@
 /**
- * node-build — task & scheduler tests (src/task.js).
+ * node-build-stream — task & scheduler tests (src/task.js).
  *
  * Copyright (c) 2026 Alex Grant (@localnerve), LocalNerve LLC
  * Licensed under the MIT license.

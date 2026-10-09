@@ -1,4 +1,4 @@
-# node-build
+# node-build-stream
 
 A **no-dependency**, Node.js 24+ streaming build runner that replaces Gulp's core
 while staying compatible with the large ecosystem of existing Gulp plugins.
@@ -8,7 +8,7 @@ thing it *optionally* reaches for at run time is your project's own `vinyl`
 package (if present), to maximize plugin compatibility.
 
 ```js
-import { task, series, parallel, src, dest, through } from 'node-build';
+import { task, series, parallel, src, dest, through } from 'node-build-stream';
 
 task('html', () =>
   src('src/**/*.html')
@@ -24,9 +24,9 @@ export default series('html');
 Gulp's "plugins" are simply **object-mode `Transform` streams that operate on
 Vinyl file objects**. The runner (`gulp.src`/`gulp.dest`) is only the I/O and
 task-scheduling layer around those transforms. So instead of re-implementing
-plugins, node-build re-implements just three small pieces using Node built-ins:
+plugins, node-build-stream re-implements just three small pieces using Node built-ins:
 
-| Gulp piece        | node-build equivalent                                  | Backed by                |
+| Gulp piece        | node-build-stream equivalent                                  | Backed by                |
 | ----------------- | ------------------------------------------------------ | ------------------------ |
 | `glob-stream`     | `src()` (object-mode readable of File objects)         | `node:fs.glob` / `readdir` |
 | `vinyl`           | built-in `File` shim, or your project's real `vinyl`    | zero-dep class            |
@@ -46,17 +46,17 @@ Point your project at the package, then run a build file with the bundled CLI:
 
 ```jsonc
 // your project's package.json
-{ "dependencies": { "node-build": "file:/path/to/node-build" } }
+{ "dependencies": { "node-build-stream": "file:/path/to/node-build-stream" } }
 ```
 
 ```sh
-node /path/to/node-build/bin/nbs [taskName] [--config ./build.mjs]
+node /path/to/node-build-stream/bin/nbs.mjs [taskName] [--config ./build.mjs]
 ```
 
 Or drive tasks from code — everything returns Promises:
 
 ```js
-import { task, series } from 'node-build';
+import { task, series } from 'node-build-stream';
 task('hello', async () => console.log('hi'));
 await series('hello');
 ```
@@ -107,7 +107,7 @@ Need the whole API surface in one load? See the
 The public API is fully JSDoc-typed and ships generated TypeScript declarations
 under [`types/`](./types) (one `.d.ts` per entry point, wired into the
 `exports` map). Consumers get full IntelliSense in both JS and TS projects with
-no configuration; `import { task, src } from 'node-build'` resolves types
+no configuration; `import { task, src } from 'node-build-stream'` resolves types
 automatically.
 
 ```sh
