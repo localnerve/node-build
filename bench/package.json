@@ -1,0 +1,31 @@
+{
+  "name": "node-build-stream-bench",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Performance benchmark for node-build-stream vs gulp, using the examples/webapp pipeline as the workload. Results accumulate in results/history.jsonl for over-time tracking.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "bench": "node src/index.ts",
+    "gate": "node src/index.ts --gate 3",
+    "report": "node src/index.ts --report",
+    "test": "node --test \"src/lib/*.test.ts\"",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "autoprefixer": "^10.6.1",
+    "gulp": "^5.0.1",
+    "handlebars": "^4.7.10",
+    "postcss": "^8.5.29",
+    "rollup": "^4.64.2",
+    "sass": "^1.105.1",
+    "sitemap": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.1",
+    "typescript": "~7.0.2"
+  }
+}
