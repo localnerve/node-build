@@ -2,7 +2,7 @@
  * Styles stage — the STREAM showcase of the webapp example.
  * 
  * Compiles the site's Sass entry to CSS and runs it through PostCSS
- * (autoprefixer) as a pure node-build stream:
+ * (autoprefixer) as a pure node-build-stream stream:
  * 
  *   src(site.scss, { encoding: 'utf8' })
  *     .pipe(through(sass compile))
@@ -19,7 +19,7 @@
  */
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { src, through } from 'node-build';
+import { src, through } from 'node-build-stream';
 
 /**
  * Build the styles stage task.
@@ -44,10 +44,10 @@ export function createStylesStage (settings) {
  * Per-file transform: compile SCSS source to CSS.
  *
  * @param {import('./settings.js').WebappSettings} settings Build settings (used for the entry name in errors).
- * @returns {(file: import('node-build/file').File) => import('node-build/file').File} The through() callback.
+ * @returns {(file: import('node-build-stream/file').File) => import('node-build-stream/file').File} The through() callback.
  */
 function sassCompile (settings) {
-  // `sass` is a recipe dependency of this EXAMPLE, not of node-build — import
+  // `sass` is a recipe dependency of this EXAMPLE, not of node-build-stream — import
   // it lazily so the rest of the pipeline never pays for it.
   return async function compileSass (file) {
     const sass = await import('sass');
@@ -63,7 +63,7 @@ function sassCompile (settings) {
 /**
  * Per-file transform: run compiled CSS through PostCSS with autoprefixer.
  *
- * @returns {(file: import('node-build/file').File) => import('node-build/file').File} The through() callback.
+ * @returns {(file: import('node-build-stream/file').File) => import('node-build-stream/file').File} The through() callback.
  */
 function postcssProcess () {
   return async function runPostcss (file) {
@@ -84,7 +84,7 @@ function postcssProcess () {
  * drop the file from the stream (nothing downstream needs it).
  *
  * @param {string} outFile Absolute path of the compiled stylesheet.
- * @returns {(file: import('node-build/file').File) => null} The through() callback.
+ * @returns {(file: import('node-build-stream/file').File) => null} The through() callback.
  */
 function writeOut (outFile) {
   return async function writeCss (file) {

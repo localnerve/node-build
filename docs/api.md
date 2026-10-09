@@ -1,7 +1,7 @@
-# node-build — API reference
+# node-build-stream — API reference
 
 Single machine-readable reference for the full public API surface of
-`node-build`. Load this one file to see every export, signature, parameter, and
+`node-build-stream`. Load this one file to see every export, signature, parameter, and
 return type. Prose docs live in [tasks.md](./tasks.md), [streams.md](./streams.md),
 [file.md](./file.md), [glob.md](./glob.md), and [cli.md](./cli.md).
 
@@ -13,19 +13,19 @@ Package facts: ESM-only · zero runtime dependencies (devDeps only) ·
 
 | Import | Module | Named exports | Default export |
 | --- | --- | --- | --- |
-| `node-build` | `src/index.js` | all of the below (plus `pipeline`) | `nodeBuild` object |
-| `node-build/task` | `src/task.js` | `task`, `seriesDefault`, `getTask`, `listTasks`, `series`, `parallel`, `run`, `runDefault` | — |
-| `node-build/stream` | `src/stream.js` | `src`, `dest`, `through`, `wrapFile`, `unwrapFile` | — |
-| `node-build/file` | `src/file.js` | `File` | `File` |
-| `node-build/glob` | `src/glob.js` | `globFiles`, `deriveBase` | `globFiles` |
-| `node-build/clean` | `src/clean.js` | `clean` | `clean` |
-| `node-build/args` | `src/args.js` | `parseArgs` | `parseArgs` |
-| `node-build/watch` | `src/watch.js` | `watch` | `watch` |
+| `node-build-stream` | `src/index.js` | all of the below (plus `pipeline`) | `nodeBuild` object |
+| `node-build-stream/task` | `src/task.js` | `task`, `seriesDefault`, `getTask`, `listTasks`, `series`, `parallel`, `run`, `runDefault` | — |
+| `node-build-stream/stream` | `src/stream.js` | `src`, `dest`, `through`, `wrapFile`, `unwrapFile` | — |
+| `node-build-stream/file` | `src/file.js` | `File` | `File` |
+| `node-build-stream/glob` | `src/glob.js` | `globFiles`, `deriveBase` | `globFiles` |
+| `node-build-stream/clean` | `src/clean.js` | `clean` | `clean` |
+| `node-build-stream/args` | `src/args.js` | `parseArgs` | `parseArgs` |
+| `node-build-stream/watch` | `src/watch.js` | `watch` | `watch` |
 
-Note: there is **no** `node-build/vinyl` subpath — `resolveFileClass` /
+Note: there is **no** `node-build-stream/vinyl` subpath — `resolveFileClass` /
 `resolveFileClassSync` are exported from the main entry only.
 
-### Default export (`import nodeBuild from 'node-build'`)
+### Default export (`import nodeBuild from 'node-build-stream'`)
 
 Plain object mirroring gulp's common surface for quick migration. Keys:
 `task`, `series`, `parallel`, `run`, `runDefault`, `src`, `dest`, `through`,
@@ -35,7 +35,7 @@ imports only): `getTask`, `listTasks`, `seriesDefault`, `wrapFile`, `unwrapFile`
 
 ---
 
-## Task API (from `node-build` or `node-build/task`)
+## Task API (from `node-build-stream` or `node-build-stream/task`)
 
 ### `task(name, fn)`
 
@@ -131,7 +131,7 @@ default is set (this is what the CLI does with no task name).
 
 ---
 
-## Stream API (from `node-build` or `node-build/stream`)
+## Stream API (from `node-build-stream` or `node-build-stream/stream`)
 
 All object-mode. Files are Vinyl-compatible (see File below).
 
@@ -150,7 +150,7 @@ function src(
 - **opts.encoding**: if set, `file.contents` is a string of that encoding; else Buffer.
 - **opts.from**: path used to resolve the project's file class (vinyl vs shim).
 - Backed by `Readable.from(asyncGenerator)` — backpressure-safe, each file read once.
-- **Warns** (`node-build: src() matched no files for pattern(s): …`) when a
+- **Warns** (`node-build-stream: src() matched no files for pattern(s): …`) when a
   positive pattern matches nothing; negation-only lists do not warn.
 
 ### `dest(destDir, opts?)`
@@ -202,7 +202,7 @@ propagation, and cleanup across the chain. Supports `{ signal }`, `{ end }`.
 
 ---
 
-## File (from `node-build` or `node-build/file`)
+## File (from `node-build-stream` or `node-build-stream/file`)
 
 ### `class File` — Vinyl-compatible shim
 
@@ -241,7 +241,7 @@ single-use reference (mirrors Vinyl). `toJSON()` serializes Buffer as UTF-8.
 
 ---
 
-## Glob (from `node-build` or `node-build/glob`)
+## Glob (from `node-build-stream` or `node-build-stream/glob`)
 
 ### `globFiles(patterns, opts?)`
 
@@ -270,7 +270,7 @@ pattern. A trailing plain-filename segment is treated as the file, not a dir
 
 ---
 
-## clean (from `node-build` or `node-build/clean`)
+## clean (from `node-build-stream` or `node-build-stream/clean`)
 
 ### `clean(patterns, opts?)`
 
@@ -289,7 +289,7 @@ ignored → **idempotent**, safe to call unconditionally at build start.
 
 ---
 
-## parseArgs (from `node-build` or `node-build/args`)
+## parseArgs (from `node-build-stream` or `node-build-stream/args`)
 
 ### `parseArgs(argList)`
 
@@ -309,7 +309,7 @@ parseArgs(['build', '--minify', '--target', 'staging', '-v'])
 
 ---
 
-## watch (from `node-build` or `node-build/watch`)
+## watch (from `node-build-stream` or `node-build-stream/watch`)
 
 ### `watch(globs, taskName?, opts?)`
 
@@ -354,7 +354,7 @@ type ResolvedFileClass = { Vinyl: FileClass; source: 'vinyl' | 'shim' };
 
 Resolves the best Vinyl-compatible file class for a project: a real `vinyl`
 package when resolvable **from the consuming project's path** (scoped via
-`createRequire`, not node-build's own deps), else the built-in shim. Memoised per
+`createRequire`, not node-build-stream's own deps), else the built-in shim. Memoised per
 resolved base path. `fromPath` defaults to `process.cwd()`.
 
 Internal (not part of the public surface, used by tests): `clearFileClassCache()`
@@ -364,7 +364,7 @@ in `src/vinyl.js`.
 
 ## CLI (`nbs`)
 
-The binary is `bin/nbs` (installed as `nbs`). Not an importable API — see
+The binary is `bin/nbs.mjs` (installed as `nbs`). Not an importable API — see
 [cli.md](./cli.md) for full docs. Quick reference:
 
 ```

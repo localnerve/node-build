@@ -1,5 +1,5 @@
 /**
- * node-build — vinyl file class resolver.
+ * node-build-stream — vinyl file class resolver.
  * 
  * Resolves the best available Vinyl-compatible file class: uses a real `vinyl`
  * package when resolvable from the project for maximum gulp plugin compatibility,
@@ -84,7 +84,7 @@ export function resolveFileClassSync(fromPath) {
  * Locate a `vinyl` implementation resolvable from the consuming project.
  *
  * A bare dynamic `import('vinyl')` here would resolve relative to THIS module
- * (node-build has no vinyl dependency), so we instead scope resolution to the
+ * (node-build-stream has no vinyl dependency), so we instead scope resolution to the
  * user's project with createRequire rooted at `base`. This is async only to keep
  * a single code path; the underlying require is synchronous.
  *

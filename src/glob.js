@@ -1,5 +1,5 @@
 /**
- * node-build — dependency-free glob.
+ * node-build-stream — dependency-free glob.
  * 
  * Prefers the built-in `node:fs` glob when available; falls back to
  * `fs.readdir({ recursive: true })` + a small matcher otherwise. Supports

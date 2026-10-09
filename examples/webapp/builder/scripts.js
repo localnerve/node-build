@@ -7,7 +7,7 @@
  * file is written, so the shipped bundle contains no runtime env lookup.
  * 
  * This stage returns a Promise (not a stream) — one of the two task shapes
- * node-build supports, shown here deliberately for contrast with styles.js.
+ * node-build-stream supports, shown here deliberately for contrast with styles.js.
  * 
  * Copyright (c) 2026 Alex Grant (@localnerve), LocalNerve LLC
  * Licensed under the MIT license.
@@ -62,7 +62,7 @@ export function createScriptsStage (settings, env) {
   );
 
   return async function scriptsStage () {
-    // `rollup` is a recipe dependency of this EXAMPLE, not of node-build.
+    // `rollup` is a recipe dependency of this EXAMPLE, not of node-build-stream.
     const { rollup } = await import('rollup');
     const bundle = await rollup({
       input: path.join(settings.srcClient, settings.jsEntry),

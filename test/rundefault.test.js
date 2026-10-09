@@ -1,5 +1,5 @@
 /**
- * node-build — runDefault() isolation tests.
+ * node-build-stream — runDefault() isolation tests.
  * 
  * Kept in its own file so the task registry starts empty (runDefault without a
  * seriesDefault runs every registered task).

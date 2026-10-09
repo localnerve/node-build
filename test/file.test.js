@@ -1,5 +1,5 @@
 /**
- * node-build — File shim tests (src/file.js).
+ * node-build-stream — File shim tests (src/file.js).
  *
  * Copyright (c) 2026 Alex Grant (@localnerve), LocalNerve LLC
  * Licensed under the MIT license.

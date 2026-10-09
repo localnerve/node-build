@@ -1,5 +1,5 @@
 /**
- * node-build — vinyl resolver tests (src/vinyl.js).
+ * node-build-stream — vinyl resolver tests (src/vinyl.js).
  *
  * Copyright (c) 2026 Alex Grant (@localnerve), LocalNerve LLC
  * Licensed under the MIT license.
@@ -13,7 +13,7 @@ import { resolveFileClass, resolveFileClassSync } from '../src/index.js';
 import { clearFileClassCache } from '../src/vinyl.js';
 
 test('resolveFileClass(Sync) falls back to the shim when vinyl is absent', async () => {
-  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'node-build-vinyl-'));
+  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'nbs-vinyl-'));
   try {
     clearFileClassCache();
     const asyncEntry = await resolveFileClass(tmp);
@@ -29,7 +29,7 @@ test('resolveFileClass(Sync) falls back to the shim when vinyl is absent', async
 });
 
 test('resolveFileClass(Sync) prefers a real vinyl package when present', async () => {
-  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'node-build-vinyl-'));
+  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'nbs-vinyl-'));
   // Install a fake `vinyl` package next to the project so createRequire
   // (used by the resolver) can find it.
   const pkgDir = path.join(tmp, 'node_modules', 'vinyl');

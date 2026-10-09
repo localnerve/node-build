@@ -1,5 +1,5 @@
 /**
- * node-build — clean() tests (src/clean.js).
+ * node-build-stream — clean() tests (src/clean.js).
  *
  * Copyright (c) 2026 Alex Grant (@localnerve), LocalNerve LLC
  * Licensed under the MIT license.
@@ -12,7 +12,7 @@ import os from 'node:os';
 import { clean } from '../src/index.js';
 
 test('clean() removes files and directories by glob and is idempotent', async () => {
-  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'node-build-clean-'));
+  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'nbs-clean-'));
   try {
     const outDir = path.join(tmp, 'to-clean');
     await fsp.mkdir(path.join(outDir, 'nested'), { recursive: true });
@@ -39,7 +39,7 @@ test('clean() removes files and directories by glob and is idempotent', async ()
 });
 
 test('clean() honors negation and ignores missing targets', async () => {
-  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'node-build-clean-'));
+  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'nbs-clean-'));
   try {
     const outDir = path.join(tmp, 'to-clean2');
     await fsp.mkdir(path.join(outDir, 'js'), { recursive: true });
@@ -60,7 +60,7 @@ test('clean() honors negation and ignores missing targets', async () => {
 });
 
 test('clean() removes literal file and directory paths mixed with globs, sorted and deduped', async () => {
-  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'node-build-clean-'));
+  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'nbs-clean-'));
   try {
     const mix = path.join(tmp, 'mix');
     await fsp.mkdir(path.join(mix, 'nested'), { recursive: true });
@@ -86,7 +86,7 @@ test('clean() removes literal file and directory paths mixed with globs, sorted 
 });
 
 test('clean() ignores missing literal paths (file or directory)', async () => {
-  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'node-build-clean-'));
+  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'nbs-clean-'));
   try {
     // Neither target exists and neither is a glob: the stat catch swallows both.
     const removed = await clean(['no-such-dir', 'no-such-file.txt'], { cwd: tmp });
@@ -97,7 +97,7 @@ test('clean() ignores missing literal paths (file or directory)', async () => {
 });
 
 test('clean() accepts absolute literal paths and falls back to process.cwd()', async () => {
-  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'node-build-clean-'));
+  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'nbs-clean-'));
   try {
     const outDir = path.join(tmp, 'adist');
     await fsp.mkdir(outDir);
@@ -128,7 +128,7 @@ test('clean() accepts absolute literal paths and falls back to process.cwd()', a
 });
 
 test('clean() wraps removal failures in a descriptive error', async (t) => {
-  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'node-build-clean-'));
+  const tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'nbs-clean-'));
   try {
     const victim = path.join(tmp, 'victim.txt');
     await fsp.writeFile(victim, 'x');
@@ -136,7 +136,7 @@ test('clean() wraps removal failures in a descriptive error', async (t) => {
     const cause = Object.assign(new Error('simulated busy'), { code: 'EBUSY' });
     t.mock.method(fsp, 'rm', () => Promise.reject(cause));
     await assert.rejects(clean(victim, { cwd: tmp }), (err) => {
-      assert.match(err.message, /node-build: clean\(\) failed to remove .*victim\.txt/);
+      assert.match(err.message, /node-build-stream: clean\(\) failed to remove .*victim\.txt/);
       assert.equal(err.cause, cause);
       return true;
     });

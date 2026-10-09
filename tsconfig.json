@@ -12,14 +12,14 @@
     "types": ["node"]
   },
   "files": [
-    "src/index.js",
+    "src/args.js",
+    "src/clean.js",
     "src/file.js",
-    "src/vinyl.js",
     "src/glob.js",
+    "src/index.js",
     "src/stream.js",
     "src/task.js",
-    "src/clean.js",
-    "src/args.js",
+    "src/vinyl.js",
     "src/watch.js"
   ]
 }

@@ -16,16 +16,16 @@ that your tasks are *streams*: a file flows into your program, passes through a
 chain of transforms (each transform is a "plugin"), and flows out to disk —
 one file at a time, memory-friendly, like water through a pipe.
 
-**node-build** re-implements exactly that core behavior with zero dependencies
+**node-build-stream** re-implements exactly that core behavior with zero dependencies
 — only Node.js built-in modules (`node:fs`, `node:path`, `node:stream`). If you
 already have Gulp plugins (which are just stream transforms), they keep
-working; if you don't, node-build is all you need.
+working; if you don't, node-build-stream is all you need.
 
 > **Requirements:** Node.js **>= 24**. Nothing else to install.
 
 ## The mental model
 
-A node-build program has three ingredients:
+A node-build-stream program has three ingredients:
 
 1. **Tasks** — named functions that do one job (see [Tasks](./tasks.md)).
 2. **Streams** — `src()` reads files, `through()` transforms them in memory,
@@ -36,7 +36,7 @@ A node-build program has three ingredients:
 The canonical shape of a build file:
 
 ```js
-import { task, series, src, dest, through } from 'node-build';
+import { task, series, src, dest, through } from 'node-build-stream';
 
 task('html', () =>
   src('src/**/*.html')                       // read files as File objects
@@ -57,12 +57,12 @@ its relative folder structure.
 
 ## Install / use
 
-node-build is a library you import from your own project's build file. Point
+node-build-stream is a library you import from your own project's build file. Point
 your package at it:
 
 ```jsonc
 // your project's package.json
-{ "dependencies": { "node-build": "file:/path/to/node-build" } }
+{ "dependencies": { "node-build-stream": "file:/path/to/node-build-stream" } }
 ```
 
 (Or install the published package normally.) There are no transitive
@@ -74,9 +74,9 @@ Create a `build.mjs` in your project root (the [CLI](./cli.md) auto-detects it)
 containing the snippet above, then run:
 
 ```sh
-node /path/to/node-build/bin/nbs          # runs the default task
-node /path/to/node-build/bin/nbs html     # runs a specific task
-node /path/to/node-build/bin/nbs --help   # show usage
+node /path/to/node-build-stream/bin/nbs.mjs          # runs the default task
+node /path/to/node-build-stream/bin/nbs.mjs html     # runs a specific task
+node /path/to/node-build-stream/bin/nbs.mjs --help   # show usage
 ```
 
 You should see `✓ build complete (build.mjs)` and a `dist/` folder with your
@@ -87,14 +87,14 @@ transformed files.
 You can skip the CLI entirely and drive tasks from any script:
 
 ```js
-import { task, series } from 'node-build';
+import { task, series } from 'node-build-stream';
 
 task('hello', async () => console.log('hi'));
 
 await series('hello');   // or: await import('./build.mjs').then(m => m.default());
 ```
 
-Because everything returns Promises, node-build fits naturally into test
+Because everything returns Promises, node-build-stream fits naturally into test
 suites, CI scripts, and other Node programs. See [Tasks](./tasks.md) for the
 full API.
 
@@ -111,7 +111,7 @@ full API.
 
 A complete, runnable build lives in [`../examples/basic/build.mjs`](../examples/basic/build.mjs) with inputs
 in [`examples/basic/src/`](../examples/basic/src/) — try `npm run build:example` from the
-node-build repository root.
+node-build-stream repository root.
 
 ### Full pipeline example
 

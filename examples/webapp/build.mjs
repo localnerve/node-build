@@ -1,5 +1,5 @@
 /**
- * node-build webapp example — build file / CLI entry.
+ * node-build-stream webapp example — build file / CLI entry.
  * 
  * Wires command-line flags into the builder factory:
  * 
@@ -15,7 +15,7 @@
  */
 import process from 'node:process';
 import fsp from 'node:fs/promises';
-import { parseArgs } from 'node-build';
+import { parseArgs } from 'node-build-stream';
 import { createSettings } from './builder/settings.js';
 import { createBuild } from './builder/index.js';
 

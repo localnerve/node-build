@@ -1,14 +1,14 @@
 # Tasks, series & parallel
 
 You have already met Gulp (or you are about to): a build is just a set of named
-steps that you can run in an order. In node-build those steps are **tasks**,
+steps that you can run in an order. In node-build-stream those steps are **tasks**,
 and the ordering tools are `series()` and `parallel()`. This page explains how
 to define tasks, what kinds of functions they may be, and how to compose them.
 
 ## Registering a task with `task(name, fn)`
 
 ```js
-import { task } from 'node-build';
+import { task } from 'node-build-stream';
 
 task('clean', async () => {
   console.log('removing dist/');
@@ -39,7 +39,7 @@ await series(copyCss);  // passing the function directly works too
 Builds a schedule that runs each item in order and **stops at the first error**:
 
 ```js
-import { series } from 'node-build';
+import { series } from 'node-build-stream';
 
 await series('clean', 'build', 'manifest');
 // clean runs, then build, then manifest. If build throws, manifest never runs.
@@ -51,7 +51,7 @@ Builds a schedule that runs every item **concurrently** and resolves when all
 succeed; it rejects on the first error:
 
 ```js
-import { parallel } from 'node-build';
+import { parallel } from 'node-build-stream';
 
 await parallel('copyHtml', 'copyCss');  // both start immediately
 ```
@@ -96,7 +96,7 @@ order.
 ### Composing: the usual pattern
 
 ```js
-import { task, series, parallel } from 'node-build';
+import { task, series, parallel } from 'node-build-stream';
 
 task('html', () => src('src/*.html').pipe(dest('dist')));
 task('css',  () => src('src/*.css').pipe(dest('dist')));
@@ -122,9 +122,9 @@ If someone runs your CLI without naming a task (see [CLI](./cli.md)), node-build
 runs whatever you marked with `seriesDefault`:
 
 ```js
-import { seriesDefault } from 'node-build';
+import { seriesDefault } from 'node-build-stream';
 
-seriesDefault('build');   // `node-build` with no args now runs task "build"
+seriesDefault('build');   // `node-build-stream` with no args now runs task "build"
 ```
 
 Without a default, all registered tasks run in parallel.
@@ -133,7 +133,7 @@ Without a default, all registered tasks run in parallel.
 
 ```js
 // build.mjs
-import { task, series, parallel, seriesDefault, src, dest } from 'node-build';
+import { task, series, parallel, seriesDefault, src, dest } from 'node-build-stream';
 
 task('clean', async () => { /* delete dist/ */ });
 task('html',  () => src('src/*.html').pipe(dest('dist')));
@@ -142,7 +142,7 @@ task('manifest', async () => { /* write manifest.json */ });
 
 const build = parallel('html', 'css').then(() => series('manifest'));
 
-seriesDefault('build');        // `node-build`  -> html+css, then manifest
+seriesDefault('build');        // `node-build-stream`  -> html+css, then manifest
 
 export default (taskName) => taskName ? series(taskName) : build();
 ```

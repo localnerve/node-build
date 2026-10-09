@@ -1,5 +1,5 @@
 /**
- * node-build — shared test fixtures.
+ * node-build-stream — shared test fixtures.
  *
  * Provides a lazily-created temp tree used by several per-module suites. The
  * layout is stable so tests can rely on exact match counts:
@@ -23,7 +23,7 @@ let ready;
  */
 export async function setupFixture() {
   if (!ready) {
-    tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'node-build-test-'));
+    tmp = await fsp.mkdtemp(path.join(os.tmpdir(), 'nbs-test-'));
     await fsp.mkdir(path.join(tmp, 'src', 'css'), { recursive: true });
     await fsp.mkdir(path.join(tmp, 'src', 'js'), { recursive: true });
     await fsp.mkdir(path.join(tmp, 'skip'), { recursive: true });

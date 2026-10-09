@@ -1,11 +1,11 @@
 {
-  "name": "node-build",
-  "version": "0.6.0",
+  "name": "node-build-stream",
+  "version": "0.7.0",
   "description": "A no-dependency, Node 24+ streaming build runner that replaces gulp while staying compatible with existing gulp plugins and Vinyl file objects.",
   "type": "module",
   "license": "MIT",
   "bin": {
-    "nbs": "./bin/nbs"
+    "nbs": "./bin/nbs.mjs"
   },
   "main": "./src/index.js",
   "types": "./types/index.d.ts",
@@ -44,7 +44,7 @@
     }
   },
   "scripts": {
-    "build:example": "node ./bin/nbs --config ./examples/basic/build.mjs",
+    "build:example": "node ./bin/nbs.mjs --config ./examples/basic/build.mjs",
     "lint": "eslint .",
     "pretest": "node -e \"const fs=require('fs'); fs.rmSync('coverage', {recursive:true, force:true}); fs.mkdirSync('coverage')\"",
     "test": "node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage/lcov.info",
@@ -96,9 +96,9 @@
     "typescript": "^7.0.2"
   },
   "bugs": {
-    "url": "https://github.com/localnerve/node-build/issues"
+    "url": "https://github.com/localnerve/node-build-stream/issues"
   },
-  "homepage": "https://github.com/localnerve/node-build#readme",
+  "homepage": "https://github.com/localnerve/node-build-stream#readme",
   "engines": {
     "node": ">=24.0.0"
   }

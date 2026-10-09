@@ -1,6 +1,6 @@
 # The CLI
 
-node-build ships a small command-line runner so you can execute your build from
+node-build-stream ships a small command-line runner so you can execute your build from
 a terminal (or CI) without writing any glue code. This page explains how to
 invoke it, how it finds and runs your build file, and — importantly — how to
 receive **your own** command-line arguments inside a task.
@@ -8,8 +8,8 @@ receive **your own** command-line arguments inside a task.
 ## Usage
 
 ```sh
-node /path/to/node-build/bin/nbs [taskName] [--config <file>] [--watch] [--list]
-node /path/to/node-build/bin/nbs --glob <pattern>... [--json]
+node /path/to/node-build-stream/bin/nbs.mjs [taskName] [--config <file>] [--watch] [--list]
+node /path/to/node-build-stream/bin/nbs.mjs --glob <pattern>... [--json]
 ```
 
 | Argument            | Meaning                                                        |
@@ -47,7 +47,7 @@ The CLI imports your build file so its `task(...)` registrations run, then:
 
    ```js
    // build.mjs
-   import { task, series, parallel } from 'node-build';
+   import { task, series, parallel } from 'node-build-stream';
 
    task('html', () => /* … */);
    task('css',  () => /* … */);
@@ -70,7 +70,7 @@ then prints every registered task name — one per line, in registration order �
 and exits **without running anything**:
 
 ```sh
-$ node ./bin/nbs --list
+$ node ./bin/nbs.mjs --list
 html
 css
 manifest
@@ -89,7 +89,7 @@ is handled *before* build-file discovery, so it works in any directory, even
 one with no build file at all:
 
 ```sh
-$ node ./bin/nbs --glob 'examples/basic/src/**/*.{html,css}'
+$ node ./bin/nbs.mjs --glob 'examples/basic/src/**/*.{html,css}'
 pattern: examples/basic/src/**/*.{html,css}
 base:    examples/basic/src
 ---
@@ -105,7 +105,7 @@ style.css
 - Add `--json` for machine/agent consumption — one object per pattern:
 
   ```sh
-  $ node ./bin/nbs --glob 'src/**' --json
+  $ node ./bin/nbs.mjs --glob 'src/**' --json
   [
     { "pattern": "src/**", "base": "src", "matches": ["index.html", "style.css"] }
   ]
@@ -120,19 +120,19 @@ arguments straight from `process.argv`, which is how you add feature-specific
 switches to a task:
 
 ```sh
-node-build manifest --minify --target staging
+nbs manifest --minify --target staging
 #                    └──────────┬──────────────┘  (your flags, passed through)
 ```
 
-node-build ships a small parser you can import — **`parseArgs()`** (exported from
-`node-build` or `node-build/args`). It turns `--name value` pairs and bare `--flags`
+node-build-stream ships a small parser you can import — **`parseArgs()`** (exported from
+`node-build-stream` or `node-build-stream/args`). It turns `--name value` pairs and bare `--flags`
 into an object, so your build file doesn't need to hand-roll argv logic:
 
 ```js
-import { parseArgs } from 'node-build';
+import { parseArgs } from 'node-build-stream';
 
 const args = parseArgs(process.argv);
-// node-build mytask --a 123 --b "my string" --c
+// nbs mytask --a 123 --b "my string" --c
 //   -> { a: "123", b: "my string", c: true }
 ```
 
@@ -149,7 +149,7 @@ How `parseArgs` decides what is a name and what is a value:
 Now any task can branch on those flags:
 
 ```js
-import { task } from 'node-build';
+import { task } from 'node-build-stream';
 
 task('manifest', async () => {
   if (args.minify) { /* minified manifest */ }
@@ -158,7 +158,7 @@ task('manifest', async () => {
 ```
 
 Because the CLI passes unknown flags through untouched, this works with *any*
-build file and needs no special node-build API — it is just `process.argv`
+build file and needs no special node-build-stream API — it is just `process.argv`
 parsing you already know from Node.
 
 ## Watching
@@ -168,15 +168,15 @@ re-runs the selected task (debounced) whenever a watched file is added,
 removed, or edited. This is the zero-dependency stand-in for `gulp-watch`.
 
 ```sh
-node ./bin/nbs [taskName] --watch
+node ./bin/nbs.mjs [taskName] --watch
 ```
 
-To tell node-build *what* to watch, your build file's **default export**
+To tell node-build-stream *what* to watch, your build file's **default export**
 declares the globs:
 
 ```js
 // build.mjs
-import { task, series } from 'node-build';
+import { task, series } from 'node-build-stream';
 
 task('css', () => /* src().pipe(dest()) … */);
 seriesDefault('css');
@@ -195,8 +195,8 @@ Press `Ctrl+C` to stop; the watcher is closed cleanly.
   debounced, so a burst of saves becomes one re-run.
 - It watches **files read by your tasks** (your assets). If you only need to
   reload the *build file itself* when you edit it, use Node's built-in
-  `node --watch ./bin/nbs …` instead — that re-runs on **import-graph**
-  changes. node-build deliberately does not wrap `--watch`, because a build file
+  `node --watch ./bin/nbs.mjs …` instead — that re-runs on **import-graph**
+  changes. node-build-stream deliberately does not wrap `--watch`, because a build file
   that merely *reads* assets inside a task never registers those files in the
   module graph, so `node --watch` would not fire for them.
 
@@ -208,24 +208,24 @@ callbacks, explicit `{ close() }`).
 
 ```sh
 # Run the default task (default export function, or seriesDefault)
-node ./bin/nbs
+node ./bin/nbs.mjs
 
 # Run one specific registered task
-node ./bin/nbs html
+node ./bin/nbs.mjs html
 
 # Point at an explicit build file
-node ./bin/nbs --config ./scripts/build.mjs css
+node ./bin/nbs.mjs --config ./scripts/build.mjs css
 
 # Pass your own flags straight through to the build module
-node ./bin/nbs manifest --minify --target staging
+node ./bin/nbs.mjs manifest --minify --target staging
 
 # List registered tasks (runs nothing)
-node ./bin/nbs --list
+node ./bin/nbs.mjs --list
 
 # See help
-node ./bin/nbs --help
+node ./bin/nbs.mjs --help
 ```
 
 The repository's [`examples/basic/build.mjs`](../examples/basic/build.mjs) is a complete
-working example: run `npm run build:example` from the node-build root to watch
+working example: run `npm run build:example` from the node-build-stream root to watch
 it copy and transform the files in `examples/basic/src/` into `examples/basic/dist/`.
