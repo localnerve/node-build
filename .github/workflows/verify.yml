@@ -26,6 +26,22 @@ jobs:
         npm run typecheck
         npm run build:types
         npm test
+    - name: Prep webapp example
+      working-directory: examples/webapp
+      run: |
+        npm ci
+        npm run build:prod
+    # Regression gate: performs 3 full benchmark invocations of the real webapp pipeline
+    # (nbs vs gulp) and compares the MEDIAN OF THEIR MEDIANS against the median of all prior
+    # nbs medians in bench/results/history.jsonl, failing on a regression beyond +15%.
+    # No committed history yet → report only, exit 0. CI never commits records — the baseline
+    # stays maintainer-controlled (local runs).
+    - name: Benchmark (regression gate)
+      working-directory: bench
+      run: |
+        npm ci
+        npm test
+        npm run gate
     - name: Coverage Upload
       if: ${{ success() }}
       uses: coverallsapp/github-action@8d6379e14d29928660c4ba802d8e85393440b329 # 2.3.8

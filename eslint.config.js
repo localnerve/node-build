@@ -15,6 +15,7 @@ export default [{
   name: 'global',
   ignores: [
     'coverage/**',
+    'bench/dist-gulp/**',
     'examples/basic/dist/**',
     'examples/webapp/dist/**',
     'node_modules/**'
@@ -63,6 +64,15 @@ export default [{
     }],
     quotes: [2, 'single'],
     'dot-notation': [2, {allowKeywords: true}]
+  }
+}, {
+  // The bench gulpfile imports build plugins that live in bench/node_modules
+  // (installed separately from the root), so missing-import resolution must not
+  // depend on those being present when the root lints before the bench step runs.
+  name: 'bench',
+  files: ['bench/**/*.mjs'],
+  rules: {
+    'n/no-missing-import': 'off'
   }
 }, {
   // The webapp example's client source is browser code (document et al).

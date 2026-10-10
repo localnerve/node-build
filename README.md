@@ -1,11 +1,14 @@
 # node-build-stream
 
 A **no-dependency**, Node.js 24+ streaming build runner that replaces Gulp's core
-while staying compatible with the large ecosystem of existing Gulp plugins.
+while staying compatible with the large ecosystem of existing Gulp plugins. AI friendly project and dist.
 
 It is built entirely on `node:` built-ins — zero runtime dependencies. The only
 thing it *optionally* reaches for at run time is your project's own `vinyl`
 package (if present), to maximize plugin compatibility.
+
+Local benchmarks show `node-build-stream` is about **20%** faster than `gulp`.  
+More on the [benchmark](#benchmark).
 
 ```js
 import { task, series, parallel, src, dest, through } from 'node-build-stream';
@@ -124,6 +127,27 @@ npm run build:types # regenerate types/*.d.ts from the JSDoc source of truth
 npm test        # node --test with coverage (target: >= 95% line coverage)
 ```
 
+## Benchmark
+
+A private subproject in [`bench/`](./bench/) times the full
+[`examples/webapp`](./examples/webapp/) pipeline against a faithful Gulp v5
+equivalent — verified to produce byte-identical output on both sides — and
+appends every run to an append-only, committed history
+([`bench/results/history.jsonl`](./bench/results/history.jsonl)) so performance is tracked over time.
+
+```sh
+cd bench && npm install   # first time only (harness + gulp v5 deps)
+npm run bench             # one-shot comparison vs gulp, appends one history record
+```
+
+CI runs the same harness on every pull request as a **regression gate**: it performs 3 full
+build invocations and fails when their median nbs-vs-gulp speedup drops more than 15 percentage
+points below the baseline (median of all prior committed records). The metric is
+machine-independent — both systems run on the same hardware, so only relative regressions matter.
+CI never commits records — the baseline is updated by maintainers committing fresh local runs.
+
+See [`bench/README.md`](./bench/README.md) for the workload, the over-time model, and how to read the data.
+
 ## Design notes & limitations
 
 - **Object-mode only.** Like Gulp, the file pipeline is object-mode (one File per
@@ -138,4 +162,4 @@ npm test        # node --test with coverage (target: >= 95% line coverage)
 
 ## LICENSE
 
-* MIT - Copyright 2026 Alex Grant, LocalNerve, LLC
+* [MIT](LICENSE.md) - Copyright 2026 Alex Grant, LocalNerve, LLC
