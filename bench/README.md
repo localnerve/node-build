@@ -46,7 +46,7 @@ cd bench
 npm install          # first time only (harness devDeps + gulp v5 + webapp-parity plugins)
 npm run bench        # run the comparison, print a styled summary, append one history record
 npm run bench -- --runs 10 --warmup 2   # more timed runs for a local deep-dive
-npm run gate         # CI mode: 3 invocations, gate median-of-medians vs prior history (+15%)
+npm run gate         # CI mode: 3 invocations, gate speedup % vs prior history (15pp)
 npm run report       # over-time trend table from results/history.jsonl
 npm run report -- --json   # same data as a single JSON document on stdout (for CI)
 ```
@@ -55,16 +55,19 @@ Flags: `--runs <n>` (timed runs, default 3), `--warmup <n>` (untimed warmup, def
 `--report` (over-time mode), `--json` (with `--report`: print one JSON document on stdout —
 and nothing else — with `{ source, count, latest, records[] }`; each row carries
 `ts / commit / dirty / node / warmup / runs / nbsMedianMs / gulpMedianMs / deltaPct`),
-`--threshold <pct>` (allowed regression vs the baseline, default 15), `--no-gate`
+`--threshold <pp>` (allowed drop in speedup, percentage points, default 15), `--no-gate`
 (report timings but never fail on regression), and `--gate [n]` (CI mode: perform n full
 invocations, default 3). Each `npm run bench` appends exactly one record and then runs the
-**regression gate**: this run's nbs median is compared against the **median of ALL prior nbs
-medians** in history (a run is never compared against itself; one noisy record can't move the
-baseline), exiting non-zero when it regressed beyond the threshold. `npm run gate` runs 3
-invocations and gates the **median of their medians** — a single noisy run can't trip it.
-No committed history yet → report only, exit 0. `--report` only reads the file (it performs no
-runs and appends nothing). The harness shells out to the real CLIs and measures wall-clock time
-— it has zero runtime dependencies of its own.
+**regression gate**: this run's nbs-vs-gulp speedup % is compared against the **median of ALL
+prior records' speedups** in history (a run is never compared against itself; one noisy record
+can't move the baseline), exiting non-zero when the speedup dropped beyond the threshold. The
+metric is **machine-independent** — both systems run on identical hardware in the same
+invocation, so a slow CI runner inflates both medians equally and only a genuine relative
+regression (nbs getting slower vs gulp) moves the percentage. `npm run gate` runs 3 invocations
+and gates the **median of their speedups** — a single noisy run can't trip it. No committed
+history yet → report only, exit 0. `--report` only reads the file (it performs no runs and
+appends nothing). The harness shells out to the real CLIs and measures wall-clock time — it has
+zero runtime dependencies of its own.
 
 ## How points accumulate
 
@@ -72,9 +75,11 @@ runs and appends nothing). The harness shells out to the real CLIs and measures 
 performance-over-time trends. Points are added by **maintainers running `npm run bench` locally
 and committing the new record**. CI (`.github/workflows/verify.yml`, step *Benchmark
 (regression gate)*) runs `npm run gate` on PRs as a **regression gate only** — 3 benchmark
-invocations whose median-of-medians is compared against the median of all prior nbs medians,
-failing beyond +15% (overridable with `--threshold`) — but does **not** commit new history, so
-the baseline stays maintainer-controlled.
+invocations whose median speedup % is compared against the median of all prior records'
+speedups, failing when the drop exceeds 15pp (overridable with `--threshold`) — but does
+**not** commit new history, so the baseline stays maintainer-controlled. The gate is
+machine-independent: a GHA runner ~37% slower than a dev laptop inflates both nbs and gulp
+equally, so the relative speedup stays stable and only real regressions trip it.
 `npm run report` renders the committed history as a per-invocation trend table (nbs vs gulp
 median + Δ%); add `--json` (`npm run report -- --json`) for a machine-readable version CI can
 parse to make gate decisions.

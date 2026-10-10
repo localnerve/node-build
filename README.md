@@ -141,9 +141,10 @@ npm run bench             # one-shot comparison vs gulp, appends one history rec
 ```
 
 CI runs the same harness on every pull request as a **regression gate**: it performs 3 full
-build invocations and fails when their median-of-medians regresses beyond +15% versus the
-median of all prior committed baseline runs (no committed history yet → report only). CI never
-commits records — the baseline is updated by maintainers committing fresh local runs.
+build invocations and fails when their median nbs-vs-gulp speedup drops more than 15 percentage
+points below the baseline (median of all prior committed records). The metric is
+machine-independent — both systems run on the same hardware, so only relative regressions matter.
+CI never commits records — the baseline is updated by maintainers committing fresh local runs.
 
 See [`bench/README.md`](./bench/README.md) for the workload, the over-time model, and how to read the data.
 

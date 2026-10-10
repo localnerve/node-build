@@ -28,7 +28,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnAndTime, runRepeatedly } from './lib/timing.ts';
 import type { TimedSpawn } from './lib/timing.ts';
 import { gitInfo } from './lib/git.ts';
-import { evaluateGate, medianOf } from './lib/gate.ts';
+import { evaluateGate, medianOfPct, speedupPct } from './lib/gate.ts';
 import type { BenchRecord, RunStats } from './lib/types.ts';
 
 const defaultGateThresholdPercent = 15;
@@ -56,7 +56,7 @@ interface HarnessArgs {
   runs: number;
   /** Untimed warmup runs per system. Default 1. */
   warmup: number;
-  /** Allowed nbs regression vs the last committed baseline, in percent. Default 15. */
+  /** Allowed drop in nbs-vs-gulp speedup (percentage points). Default 15. */
   threshold: number;
   /** True for `--no-gate` (report timings but never fail on regression). */
   noGate: boolean;
@@ -206,19 +206,10 @@ function shortTs (iso: string): string {
   return typeof iso === 'string' && iso.length >= 16 ? iso.slice(0, 16).replace('T', ' ') : '?';
 }
 
-/**
- * Signed "% faster" for nbs vs gulp by median, rounded to 1 decimal
- * (positive => nbs faster; negative => nbs slower). Shared by the table and JSON outputs.
- */
-function medianDeltaPct (nbsMs: number, gulpMs: number): number {
-  if (gulpMs <= 0) return 0;
-  return Math.round(((gulpMs - nbsMs) / gulpMs) * 1000) / 10;
-}
-
-/** Display form of {@link medianDeltaPct}: "on par" within a 0.05 ms epsilon, else signed pct. */
+/** Display form of {@link speedupPct}: "on par" within a 0.05 ms epsilon, else signed pct. */
 function deltaPct (nbsMs: number, gulpMs: number): string {
   if (Math.abs(nbsMs - gulpMs) < 0.05) return 'on par';
-  const pct = medianDeltaPct(nbsMs, gulpMs);
+  const pct = speedupPct(nbsMs, gulpMs);
   return `${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%`;
 }
 
@@ -280,7 +271,7 @@ function printJsonReport (records: BenchRecord[]): void {
     runs: rec.runs,
     nbsMedianMs: rec.systems.nbs.median,
     gulpMedianMs: rec.systems.gulp.median,
-    deltaPct: medianDeltaPct(rec.systems.nbs.median, rec.systems.gulp.median)
+    deltaPct: speedupPct(rec.systems.nbs.median, rec.systems.gulp.median)
   }));
   const out = {
     source: path.relative(BENCH_DIR, HISTORY_FILE),
@@ -328,27 +319,28 @@ function verdictLine (nbsMs: number, gulpMs: number): string {
 }
 
 /**
- * Regression gate: compare this run's nbs median against `baselineMs` — the MEDIAN OF ALL
- * PRIOR nbs medians in history (robust to a single noisy record). Report-only when the gate
- * is disabled (`--no-gate`) or no usable baseline exists yet (first-ever run seeds it).
- * Returns true when the run regressed beyond the threshold.
+ * Regression gate: compare this run's nbs-vs-gulp speedup % against `baselinePct` — the
+ * MEDIAN OF ALL PRIOR records' speedups in history (robust to a single noisy record).
+ * Machine-independent: both systems run on the same hardware, so only relative regressions
+ * move the metric. Report-only when the gate is disabled (`--no-gate`) or no baseline exists.
+ * Returns true when the speedup dropped beyond the threshold.
  */
-function applyGate (currentMs: number, baselineMs: number, baselineCount: number, args: HarnessArgs): boolean {
+function applyGate (currentPct: number, baselinePct: number | null, baselineCount: number, args: HarnessArgs): boolean {
   if (args.noGate) {
     console.log('gate     : disabled (--no-gate)');
     return false;
   }
-  if (!(baselineMs > 0)) {
+  if (baselinePct === null) {
     console.log('gate     : skipped — no prior history yet (this run seeds the baseline)');
     return false;
   }
-  const res = evaluateGate(currentMs, baselineMs, args.threshold);
+  const res = evaluateGate(currentPct, baselinePct, args.threshold);
   if (res.regressed) {
-    console.error(`gate     : ${paint('REGRESSED', { fg: 'red', bold: true })} — nbs median ${currentMs.toFixed(1)} ms is +${res.changePct.toFixed(1)}% vs baseline ${baselineMs.toFixed(1)} ms (median of ${baselineCount} prior run(s); threshold +${args.threshold}%)`);
+    console.error(`gate     : ${paint('REGRESSED', { fg: 'red', bold: true })} — nbs only +${res.currentPct.toFixed(1)}% faster than gulp (baseline +${res.baselinePct.toFixed(1)}%; drop ${res.dropPct.toFixed(1)}pp > threshold ${args.threshold}pp, median of ${baselineCount} prior run(s))`);
     return true;
   }
-  const sign = res.changePct >= 0 ? '+' : '';
-  console.log(`gate     : ${paint('PASS', { fg: 'green' })} — nbs median ${currentMs.toFixed(1)} ms vs baseline ${baselineMs.toFixed(1)} ms (median of ${baselineCount} prior run(s); ${sign}${res.changePct.toFixed(1)}%, threshold +${args.threshold}%)`);
+  const sign = res.dropPct >= 0 ? '' : '-';
+  console.log(`gate     : ${paint('PASS', { fg: 'green' })} — nbs +${res.currentPct.toFixed(1)}% faster than gulp (baseline +${res.baselinePct.toFixed(1)}%; Δ ${sign}${Math.abs(res.dropPct).toFixed(1)}pp, threshold ${args.threshold}pp)`);
   return false;
 }
 
@@ -363,10 +355,12 @@ function applyGate (currentMs: number, baselineMs: number, baselineCount: number
  * nothing is appended in report mode).
  */
 /**
- * CI multi-run gate: capture the baseline (median of ALL prior nbs medians) BEFORE any
- * append, perform `gateRuns` full benchmark invocations, then compare the MEDIAN OF THEIR
- * MEDIANS against that baseline — a single noisy run can't trip the gate. Each invocation
- * still appends its own record (CI never commits them; locally they are legitimate history).
+ * CI multi-run gate: capture the baseline (median of ALL prior records' speedup %) BEFORE
+ * any append, perform `gateRuns` full benchmark invocations, then compare the MEDIAN OF
+ * THEIR SPEEDUPS against that baseline — a single noisy run can't trip the gate. Machine-
+ * independent: both systems run on the same hardware so only relative regressions matter.
+ * Each invocation still appends its own record (CI never commits them; locally they are
+ * legitimate history).
  */
 async function mainGateMode (args: HarnessArgs): Promise<void> {
   // Fail fast with a clear message if a runner's entry point is missing.
@@ -375,12 +369,14 @@ async function mainGateMode (args: HarnessArgs): Promise<void> {
   }
 
   const prior = await readHistory();
-  const baselineMs = medianOf(prior.map((rec) => rec.systems.nbs.median));
+  const baselinePct = prior.length > 0
+    ? medianOfPct(prior.map((rec) => speedupPct(rec.systems.nbs.median, rec.systems.gulp.median)))
+    : null;
 
   console.log(`node-build-stream · benchmark gate (vs gulp) — ${args.gateRuns} invocation(s)`);
   console.log('───────────────────────────────────────');
-  if (baselineMs > 0) {
-    console.log(`baseline : nbs median ${baselineMs.toFixed(1)} ms (median of ${prior.length} prior run${prior.length === 1 ? '' : 's'}, gate +${args.threshold}%)`);
+  if (baselinePct !== null) {
+    console.log(`baseline : nbs +${baselinePct.toFixed(1)}% faster than gulp (median of ${prior.length} prior run${prior.length === 1 ? '' : 's'}, gate ${args.threshold}pp)`);
   } else {
     console.log('baseline : none yet — this gate seeds history; no regression check this time');
   }
@@ -390,13 +386,13 @@ async function mainGateMode (args: HarnessArgs): Promise<void> {
     return;
   }
 
-  const medians: number[] = [];
+  const speedups: number[] = [];
   for (let i = 1; i <= args.gateRuns; i++) {
     console.log(`\n──── invocation ${i}/${args.gateRuns} ────`);
     const nbsStats = await timeSystem('nbs', makeNbsRunner(), args);
     const gulpStats = await timeSystem('gulp', makeGulpRunner(), args);
     printComparison(nbsStats, gulpStats);
-    medians.push(nbsStats.median);
+    speedups.push(speedupPct(nbsStats.median, gulpStats.median));
 
     const git = gitInfo();
     const record: BenchRecord = {
@@ -411,19 +407,18 @@ async function mainGateMode (args: HarnessArgs): Promise<void> {
     await appendRecord(record);
   }
 
-  if (!(baselineMs > 0)) {
+  if (baselinePct === null) {
     console.log('\ngate     : PASS (no prior history to compare against — baseline seeded)');
     return;
   }
 
-  const runMedian = medianOf(medians);
-  const res = evaluateGate(runMedian, baselineMs, args.threshold);
+  const runPct = medianOfPct(speedups) ?? 0;
+  const res = evaluateGate(runPct, baselinePct, args.threshold);
   if (res.regressed) {
-    console.error(`\ngate     : ${paint('REGRESSED', { fg: 'red', bold: true })} — median of medians ${runMedian.toFixed(1)} ms is +${res.changePct.toFixed(1)}% vs baseline ${baselineMs.toFixed(1)} ms (threshold +${args.threshold}%)`);
+    console.error(`\ngate     : ${paint('REGRESSED', { fg: 'red', bold: true })} — median speedup +${runPct.toFixed(1)}% vs baseline +${baselinePct.toFixed(1)}% (drop ${res.dropPct.toFixed(1)}pp > threshold ${args.threshold}pp)`);
     process.exitCode = 1;
   } else {
-    const sign = res.changePct >= 0 ? '+' : '';
-    console.log(`\ngate     : ${paint('PASS', { fg: 'green' })} — median of medians ${runMedian.toFixed(1)} ms vs baseline ${baselineMs.toFixed(1)} ms (${sign}${res.changePct.toFixed(1)}%, threshold +${args.threshold}%)`);
+    console.log(`\ngate     : ${paint('PASS', { fg: 'green' })} — median speedup +${runPct.toFixed(1)}% vs baseline +${baselinePct.toFixed(1)}% (Δ ${res.dropPct >= 0 ? '' : '-'}${Math.abs(res.dropPct).toFixed(1)}pp, threshold ${args.threshold}pp)`);
   }
 }
 
@@ -448,10 +443,13 @@ async function main (): Promise<void> {
   }
 
   const git = gitInfo();
-  // Baseline for the regression gate = MEDIAN OF ALL PRIOR nbs medians BEFORE this run's own
-  // append, so a run is never compared against itself (and one noisy record can't move it).
+  // Baseline for the regression gate = MEDIAN OF ALL PRIOR records' speedup % BEFORE this
+  // run's own append, so a run is never compared against itself. Machine-independent: both
+  // systems run on the same hardware, so only relative regressions move the metric.
   const prior = await readHistory();
-  const baselineMs = medianOf(prior.map((rec) => rec.systems.nbs.median));
+  const baselinePct = prior.length > 0
+    ? medianOfPct(prior.map((rec) => speedupPct(rec.systems.nbs.median, rec.systems.gulp.median)))
+    : null;
 
   console.log('node-build-stream · benchmark (vs gulp)');
   console.log('───────────────────────────────────────');
@@ -459,8 +457,8 @@ async function main (): Promise<void> {
   console.log(`node     : ${process.version}`);
   console.log(`git      : ${git ? `${git.commit}${git.dirty ? ' (dirty)' : ''}` : 'not a git work tree'}`);
   console.log(`timing   : ${args.warmup} warmup × ${args.runs} timed run(s) per system`);
-  if (baselineMs > 0) {
-    console.log(`baseline : nbs median ${baselineMs.toFixed(1)} ms (median of ${prior.length} prior run${prior.length === 1 ? '' : 's'}, gate +${args.threshold}%)`);
+  if (baselinePct !== null) {
+    console.log(`baseline : nbs +${baselinePct.toFixed(1)}% faster than gulp (median of ${prior.length} prior run${prior.length === 1 ? '' : 's'}, gate ${args.threshold}pp)`);
   } else {
     console.log('baseline : none yet — this run seeds the first committed record');
   }
@@ -482,7 +480,8 @@ async function main (): Promise<void> {
   await appendRecord(record);
   console.log(`\nrecord appended → ${path.relative(BENCH_DIR, HISTORY_FILE)}`);
 
-  if (applyGate(nbsStats.median, baselineMs, prior.length, args)) {
+  const currentPct = speedupPct(nbsStats.median, gulpStats.median);
+  if (applyGate(currentPct, baselinePct, prior.length, args)) {
     process.exitCode = 1;
   }
 }
