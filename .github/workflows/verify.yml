@@ -26,6 +26,11 @@ jobs:
         npm run typecheck
         npm run build:types
         npm test
+    - name: Prep webapp example
+      working-directory: examples/webapp
+      run: |
+        npm ci
+        npm run build:prod
     # Regression gate: performs 3 full benchmark invocations of the real webapp pipeline
     # (nbs vs gulp) and compares the MEDIAN OF THEIR MEDIANS against the median of all prior
     # nbs medians in bench/results/history.jsonl, failing on a regression beyond +15%.
